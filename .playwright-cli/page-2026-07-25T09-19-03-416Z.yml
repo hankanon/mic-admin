@@ -1,0 +1,72 @@
+- generic [ref=e43]:
+  - complementary [ref=e44]:
+    - generic [ref=e45]: MIC Admin 控制台
+    - menubar [ref=e48]:
+      - menuitem [ref=e49] [cursor=pointer]
+      - menuitem "文档发布" [expanded] [ref=e53]:
+        - menu [ref=e369]:
+          - menuitem "文档列表" [ref=e370] [cursor=pointer]
+          - menuitem "发布管理" [active] [ref=e371] [cursor=pointer]
+      - menuitem "系统管理" [expanded] [ref=e62]:
+        - menu [ref=e89]:
+          - menuitem "菜单管理" [ref=e90] [cursor=pointer]
+          - menuitem "角色管理" [ref=e91] [cursor=pointer]
+          - menuitem "人员管理" [ref=e92] [cursor=pointer]
+  - generic [ref=e71]:
+    - generic [ref=e72]:
+      - generic [ref=e73]: MIC Admin 控制台
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76]: A
+          - generic [ref=e77]: admin
+        - button "退出登录" [ref=e78] [cursor=pointer]
+    - main [ref=e80]:
+      - generic [ref=e374]:
+        - navigation "Breadcrumb" [ref=e375]:
+          - link "文档列表" [ref=e377]
+        - generic [ref=e378]:
+          - generic [ref=e380]:
+            - generic [ref=e381]: 文档列表
+            - button "新建文档" [ref=e382] [cursor=pointer]
+          - generic [ref=e386]:
+            - table [ref=e388]:
+              - rowgroup [ref=e396]:
+                - row [ref=e397]:
+                  - columnheader "ID" [ref=e398]
+                  - columnheader "标题" [ref=e400]
+                  - columnheader "作者" [ref=e402]
+                  - columnheader "状态" [ref=e404]
+                  - columnheader "更新时间" [ref=e406]
+                  - columnheader "操作" [ref=e408]
+            - table [ref=e414]:
+              - rowgroup [ref=e422]:
+                - row [ref=e423]:
+                  - cell "1" [ref=e424]
+                  - cell "微前端接入指南" [ref=e426]
+                  - cell "张三" [ref=e428]
+                  - cell "已发布" [ref=e430]
+                  - cell "2026-07-20 10:00:00" [ref=e434]
+                  - cell [ref=e436]:
+                    - generic [ref=e437]:
+                      - button "编辑" [ref=e438] [cursor=pointer]
+                      - button "删除" [ref=e440] [cursor=pointer]
+                - row [ref=e442]:
+                  - cell "2" [ref=e443]
+                  - cell "组件库使用手册" [ref=e445]
+                  - cell "李四" [ref=e447]
+                  - cell "草稿" [ref=e449]
+                  - cell "2026-07-21 14:30:00" [ref=e453]
+                  - cell [ref=e455]:
+                    - generic [ref=e456]:
+                      - button "编辑" [ref=e457] [cursor=pointer]
+                      - button "删除" [ref=e459] [cursor=pointer]
+                - row [ref=e461]:
+                  - cell "3" [ref=e462]
+                  - cell "权限模型设计" [ref=e464]
+                  - cell "王五" [ref=e466]
+                  - cell "已归档" [ref=e468]
+                  - cell "2026-07-22 09:15:00" [ref=e472]
+                  - cell [ref=e474]:
+                    - generic [ref=e475]:
+                      - button "编辑" [ref=e476] [cursor=pointer]
+                      - button "删除" [ref=e478] [cursor=pointer]

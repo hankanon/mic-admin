@@ -1,0 +1,28 @@
+{
+  "name": "@mic/doc-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "vite preview --port 3001",
+    "lint": "vue-tsc --noEmit",
+    "typecheck": "vue-tsc --noEmit"
+  },
+  "dependencies": {
+    "@mic/components": "workspace:*",
+    "@mic/utils": "workspace:*",
+    "@element-plus/icons-vue": "^2.3.0",
+    "element-plus": "^2.9.0",
+    "pinia": "^2.3.0",
+    "vue": "^3.5.0",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0",
+    "vue-tsc": "^2.2.0"
+  }
+}

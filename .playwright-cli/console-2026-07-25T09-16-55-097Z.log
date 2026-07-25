@@ -1,0 +1,181 @@
+[     240ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/favicon.ico:0
+[  508119ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[  508119ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[ 6990088ms] [ERROR] WebSocket connection to 'ws://localhost:3001/?token=v4CtvRO_iAM9' failed:  @ http://localhost:3001/@vite/client:801
+[ 6990089ms] [ERROR] WebSocket connection to 'ws://localhost:3000/?token=pM4kRUDrWcuU' failed:  @ http://localhost:3000/@vite/client:801
+[ 6990089ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3001/@vite/client:963
+[ 6990089ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[ 6990343ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[ 6990635ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/:0
+[ 6990635ms] [ERROR] [micro-app] app doc-app: Failed to fetch data from http://localhost:3001/, micro-app stop rendering TypeError: Failed to fetch
+    at fetchSource (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:523:17)
+    at _HTMLLoader.run (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:543:163)
+    at CreateApp.loadSourceCode (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:5224:30)
+    at new CreateApp (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:5218:10)
+    at createAppInstance (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:6442:16)
+    at MicroAppElement.handleCreateApp (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:6464:9)
+    at MicroAppElement.handleConnected (http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:6391:14)
+    at http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:6291:32 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 7178336ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 7178574ms] undefined
+[ 7242945ms] [ERROR] WebSocket connection to 'ws://localhost:3000/?token=pM4kRUDrWcuU' failed:  @ http://localhost:3000/@vite/client:801
+[ 7242945ms] [ERROR] WebSocket connection to 'ws://localhost:3001/?token=gMuf99IZE8qq' failed:  @ http://localhost:3001/@vite/client:801
+[ 7242945ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[ 7242945ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3001/@vite/client:963
+[ 7243000ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 7244007ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 7245009ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 7246509ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 7246564ms] undefined
+[ 7836415ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 7836756ms] undefined
+[ 7844426ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 7844461ms] undefined
+[ 7859651ms] [ERROR] WebSocket connection to 'ws://localhost:3001/?token=gMuf99IZE8qq' failed:  @ http://localhost:3001/@vite/client:801
+[ 7859651ms] [ERROR] WebSocket connection to 'ws://localhost:3003/?token=n8jx9l6yM98l' failed:  @ http://localhost:3003/@vite/client:801
+[ 7859651ms] [ERROR] WebSocket connection to 'ws://localhost:3000/?token=lmXcW74N8WWi' failed:  @ http://localhost:3000/@vite/client:801
+[ 7859652ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3001/@vite/client:963
+[ 7859652ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3003/@vite/client:963
+[ 7859652ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[ 7859747ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 7860754ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 7861757ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 7863221ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 7863286ms] undefined
+[ 8035956ms] [WARNING] [Vue warn]: Property "filterAppKey" was accessed during render but is not defined on instance. 
+  at <ElCard class="page-card" shadow="never" > 
+  at <PageCard title="菜单管理" > 
+  at <MenuManage onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <KeepAlive include="MenuManage,RoleManage,UserManage" > 
+  at <RouterView key=0 > 
+  at <App> @ http://localhost:3003/node_modules/.vite/deps/chunk-NMASURBV.js?v=5aa7d805:2229
+[ 8035966ms] [WARNING] Property "filterAppKey" was accessed during render but is not defined on instance. Proxy(Object) at <ElCard>
+at <PageCard>
+at <MenuManage>
+at <KeepAlive>
+at <RouterView>
+at <App> [Object, Object, Object, Object, Object, Object] @ http://localhost:3003/node_modules/.vite/deps/element-plus.js?v=5aa7d805:25506
+[ 8035977ms] [WARNING] Property "filterAppKey" was accessed during render but is not defined on instance. Proxy(Object) at <ElCard>
+at <PageCard>
+at <MenuManage>
+at <KeepAlive>
+at <RouterView>
+at <App> [Object, Object, Object, Object, Object, Object] @ http://localhost:3003/node_modules/.vite/deps/element-plus.js?v=5aa7d805:25506
+[ 8039881ms] [WARNING] [Vue warn]: Property "filterAppKey" was accessed during render but is not defined on instance. 
+  at <ElCard class="page-card" shadow="never" > 
+  at <PageCard title="菜单管理" > 
+  at <MenuManage onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <KeepAlive include="MenuManage,RoleManage,UserManage" > 
+  at <RouterView key=0 > 
+  at <App> @ http://localhost:3003/node_modules/.vite/deps/chunk-NMASURBV.js?v=5aa7d805:2229
+[ 8039888ms] [WARNING] Property "filterAppKey" was accessed during render but is not defined on instance. Proxy(Object) at <ElCard>
+at <PageCard>
+at <MenuManage>
+at <KeepAlive>
+at <RouterView>
+at <App> [Object, Object, Object, Object, Object, Object] @ http://localhost:3003/node_modules/.vite/deps/element-plus.js?v=5aa7d805:25506
+[ 8039898ms] [WARNING] Property "filterAppKey" was accessed during render but is not defined on instance. Proxy(Object) at <ElCard>
+at <PageCard>
+at <MenuManage>
+at <KeepAlive>
+at <RouterView>
+at <App> [Object, Object, Object, Object, Object, Object] @ http://localhost:3003/node_modules/.vite/deps/element-plus.js?v=5aa7d805:25506
+[ 8676939ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8676971ms] undefined
+[ 8678225ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8678284ms] undefined
+[ 8680670ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8680780ms] undefined
+[ 8694247ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8694277ms] undefined
+[ 8707463ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8707499ms] undefined
+[ 8787758ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8787790ms] undefined
+[ 8795459ms] [ERROR] [vite] SyntaxError: The requested module '/@fs/Users/han/learn/mic-admin/packages/components/src/index.ts?t=1784979802602' does not provide an export named 'filterMenusByPermissions' @ http://localhost:3000/@vite/client:881
+[ 8795459ms] [ERROR] [vite] Failed to reload /src/layout/MainLayout.vue. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3000/@vite/client:881
+[ 8816525ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8816662ms] undefined
+[ 8845151ms] [ERROR] [vite] SyntaxError: The requested module '/@fs/Users/han/learn/mic-admin/packages/components/src/index.ts?t=1784979847007' does not provide an export named 'filterMenusByPermissions' @ http://localhost:3001/@vite/client:881
+[ 8845151ms] [ERROR] [vite] Failed to reload /src/App.vue. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3001/@vite/client:881
+[ 8851861ms] [ERROR] [vite] SyntaxError: The requested module '/@fs/Users/han/learn/mic-admin/packages/components/src/index.ts?t=1784979847007' does not provide an export named 'filterMenusByPermissions' @ http://localhost:3003/@vite/client:881
+[ 8851861ms] [ERROR] [vite] Failed to reload /src/App.vue. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:3003/@vite/client:881
+[ 8885052ms] [WARNING] Unhandled error during execution of mounted hook Proxy(Object) at <MenuManage>
+at <KeepAlive>
+at <RouterView>
+at <App> [Object, Object, Object, Object] @ http://localhost:3003/node_modules/.vite/deps/element-plus.js?v=5aa7d805:25506
+[ 8885073ms] CanceledError: canceled
+    at throwIfCancellationRequested (http://localhost:3003/node_modules/.vite/deps/axios.js?v=5aa7d805:2794:11)
+    at Axios.dispatchRequest (http://localhost:3003/node_modules/.vite/deps/axios.js?v=5aa7d805:2798:3)
+    at async Axios.request (http://localhost:3003/node_modules/.vite/deps/axios.js?v=5aa7d805:2926:14)
+    at async fetchTree (http://localhost:3003/src/views/MenuManage.vue?t=1784979831600:23:26)
+[ 8885075ms] [WARNING] [Vue warn]: Unhandled error during execution of render function 
+  at <MainLayout onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <RouterView> 
+  at <App> @ http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:2229
+[ 8885075ms] [WARNING] [Vue warn]: Unhandled error during execution of scheduler flush 
+  at <MainLayout onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <RouterView> 
+  at <App> @ http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:2229
+[ 8885182ms] TypeError: permissions.includes is not a function
+    at hasAppPermission (http://localhost:3000/@fs/Users/han/learn/mic-admin/packages/utils/src/permission.ts:31:19)
+    at http://localhost:3000/@fs/Users/han/learn/mic-admin/packages/components/src/menu/config.ts?t=1784979802602:55:41
+    at Array.filter (<anonymous>)
+    at filterMenusByPermissions (http://localhost:3000/@fs/Users/han/learn/mic-admin/packages/components/src/menu/config.ts?t=1784979802602:55:16)
+    at ComputedRefImpl.fn (http://localhost:3000/src/layout/MainLayout.vue?t=1784979900040:16:34)
+    at refreshComputed (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:686:29)
+    at get value (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:1941:5)
+    at unref (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:1796:30)
+    at Object.get (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:1802:64)
+    at Proxy._sfc_render (http://localhost:3000/src/layout/MainLayout.vue?t=1784979900040:55:19)
+[ 8897473ms] [WARNING] [Vue warn]: Unhandled error during execution of scheduler flush 
+  at <MainLayout onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< null > > 
+  at <RouterView> 
+  at <App> @ http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:2229
+[ 8897473ms] TypeError: Cannot read properties of null (reading 'component')
+    at locateNonHydratedAsyncRoot (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:9209:41)
+    at locateNonHydratedAsyncRoot (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:9214:14)
+    at ReactiveEffect.componentUpdateFn [as fn] (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:8434:40)
+    at ReactiveEffect.run (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:532:19)
+    at http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:2715:27
+    at callWithErrorHandling (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:2377:33)
+    at flushJobs (http://localhost:3000/node_modules/.vite/deps/chunk-NMASURBV.js?v=0be200da:2585:9)
+[ 8949144ms] [ERROR] WebSocket connection to 'ws://localhost:3000/?token=1sPyCziCgg8Z' failed:  @ http://localhost:3000/@vite/client:801
+[ 8949144ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[ 8949188ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 8950192ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 8951193ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[ 8952505ms] [ERROR] [micro-app] 导航失败，请确保子应用渲染后再调用此方法 @ http://localhost:3000/node_modules/.vite/deps/@micro-zoe_micro-app.js?v=0be200da:152
+[ 8952588ms] undefined
+[11731005ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:963
+[11731007ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3003/@vite/client:963
+[11731007ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3001/@vite/client:963
+[11731007ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11731007ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11731008ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11732013ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11732013ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11732013ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11733031ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11733042ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11733055ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11734067ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11734175ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11734368ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11735467ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11735508ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11737657ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11737829ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11740116ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11740805ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11741201ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11743132ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11745191ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11745917ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11748842ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11749117ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11751794ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11752125ms] [ERROR] WebSocket connection to 'ws://localhost:3000/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3000/@vite/client:1034
+[11753551ms] [ERROR] WebSocket connection to 'ws://localhost:3003/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3003/@vite/client:1034
+[11756004ms] [ERROR] WebSocket connection to 'ws://localhost:3001/' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:3001/@vite/client:1034
+[11856447ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:3000/@vite/client:992

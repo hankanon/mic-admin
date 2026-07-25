@@ -1,0 +1,25 @@
+{
+  "name": "@mic/utils",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "module": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./request": "./src/request/index.ts",
+    "./storage": "./src/storage/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./constants": "./src/constants/index.ts",
+    "./helpers": "./src/helpers/index.ts",
+    "./micro": "./src/micro/index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.7.0",
+    "mitt": "^3.0.1"
+  },
+  "peerDependencies": {
+    "element-plus": "^2.9.0"
+  }
+}

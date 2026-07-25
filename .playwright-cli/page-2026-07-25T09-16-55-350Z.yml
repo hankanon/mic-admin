@@ -1,0 +1,10 @@
+- generic [ref=e6]:
+  - generic [ref=e7]: MIC Admin 控制台
+  - generic [ref=e8]:
+    - textbox "用户名" [ref=e17]
+    - textbox "密码" [ref=e27]
+    - generic [ref=e30] [cursor=pointer]:
+      - generic [ref=e31]:
+        - checkbox "记住我" [checked]
+      - generic [ref=e33]: 记住我
+    - button "登 录" [ref=e36] [cursor=pointer]
