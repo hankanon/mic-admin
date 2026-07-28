@@ -1,3 +1,13 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# pnpm 9 起 overrides 必须放在 workspace 配置中（不再读取 package.json 的 pnpm 字段）
+overrides:
+  vue: 3.5.40
+  vue-router: 5.2.0
+  pinia: 4.0.2
+  element-plus: 2.14.3
+  axios: 1.18.1
+  vite: 8.1.5
+  "@vitejs/plugin-vue": 6.0.8

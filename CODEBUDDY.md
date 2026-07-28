@@ -28,7 +28,7 @@ pnpm --filter @mic/doc-app typecheck   # 单个应用
 
 ## 大局架构
 
-**微前端 monorepo**：Vue 3.5 + Vite 6 + TS + Element Plus + Pinia + `@micro-zoe/micro-app`（固定版本 `1.0.0-rc.32`，无稳定 1.0 正式版，勿改成 `^1.0.0`）。
+**微前端 monorepo**：Vue 3.5.40 + Vite 8.1.5 + TypeScript 5.9.2 + Element Plus 2.14.3 + Pinia 4.0.2 + vue-router 5.2.0 + `@micro-zoe/micro-app`（固定版本 `1.0.0-rc.32`，无稳定 1.0 正式版，勿改成 `^1.0.0`）；运行时 Node 26。
 
 ```
 apps/
@@ -102,9 +102,41 @@ packages/
 
 菜单管理 / 角色管理 / 人员管理三页统一采用 **条件快照** 模式：维护 `query`（表单草稿）与 `activeQuery`（已点击「查询」才生效的条件），用 `computed`（如 `filteredTree` / `filteredRoles` / `filteredUsers`）基于 `activeQuery` 做前端过滤（树形菜单递归过滤）；「重置」清空 `query` 与 `activeQuery`。查询区为浅色卡片（`.search-form`）。保持查询条件在 keep-alive 切换后不丢失（见 §4）。
 
+### 10. 页签（Tab）管理（基座级）
+
+顶部导航栏下方（`BasicLayout` 的 `#tabs` 插槽）提供页签栏，对应左侧菜单的「页面级」导航：
+
+- **状态管理**：`apps/main-app/src/store/tabs.ts` 的 `useTabsStore`（Pinia），`tabs: TabItem[]` + `activePath`；`addTab` 按 `path` 去重（重复仅置激活），`closeTab` / `closeOthers` / `closeAll` / `reset` 处理关闭；首页（`/`）设为 `affix` 常驻、**不可关闭**。
+- **UI 组件**：`apps/main-app/src/components/TabsView.vue`，含横向滚动容器 + 左右滚动箭头（溢出时显示）+ 激活项自动滚入可视区。
+- **右键上下文菜单**：基于 `el-dropdown trigger="contextmenu"`，提供「关闭自己」「关闭其他」「关闭全部」三项；常驻首页在「关闭自己」时禁用。
+- **自动新增与高亮**：`MainLayout` 用 `watch(route.fullPath, syncTabs, { immediate: true })` 监听路由，按 `matchMenuKey` 找到当前菜单项自动 `addTab`，并 `setActive` 同步高亮；点击页签 `router.push(tab.path)` 切换。
+- **生命周期**：`handleLogout` 与 `handleSwitchAccount` 调用 `tabsStore.reset()` 清理越权页签后重新 `syncTabs()`。
+- 该栏仅基座 `MainLayout` 注入（子应用独立运行不传 `#tabs`，不显示）。页签对应「基座级页面」（菜单叶子项）；子应用 **内部** 路由切换（iframe 隔离）不会新增基座页签。
+
+### 11. 菜单展开 / 收起（collapse）
+
+侧边菜单支持展开与收起，状态由 `BasicLayout` 内部 `collapsed` 管理，底部「折叠按钮」（Fold / Expand 图标）切换：
+
+- **展开态**：`el-aside` 宽 `220px`，渲染完整 `AppMenu`（菜单分组 + 子项，激活高亮不变），布局结构与之前一致。
+- **收起态**：`el-aside` 宽 `64px`，不再渲染 `AppMenu`，改为仅遍历**顶级菜单项**的「图标栏」（`collapse-bar`）：每个子应用（home / doc / sys）仅显示一个图标，`flex` 竖向居中、统一 `46×46` 尺寸与 `8px` 间距；当前路由落在某子应用范围内时该图标高亮（`isTopActive`）。
+- **悬浮提示**：收起态每个图标包 `el-tooltip`（placement `right`）展示对应子应用 `title`（如「文档发布」）；图标被 `el-aside` 裁剪但 tooltip 经 teleport 到 body 显示到主区域，不受 `overflow:hidden` 影响。
+- **点击导航**：收起态点击图标 → `goTop(item)` 跳转到该子应用首个页面（顶级 `path` 或 `children[0].path`），`host` / `standalone` 依 `mode` 走前缀逻辑，与页签同步联动。
+- **平滑动画**：`el-aside` 加 `transition: width 0.28s ease`，展开/收起时侧边栏宽度平滑过渡，不影响路由、页签与内容区。
+- 该功能仅依赖 `BasicLayout` 内部状态，基座（`MainLayout`）与子应用独立运行（`App.vue` standalone）自动获得，无需宿主额外接入。
+
+### 12. 主题（暗黑 / 白天）切换
+
+右上角提供主题切换按钮（太阳/月亮图标，点击切换到对立模式），通过 `<html class="dark">` + 语义化 CSS 变量切换整站色彩：
+
+- **核心模块**：`@mic/utils/src/theme.ts` 的 `useTheme()`（模块级单例 `currentTheme` + `initTheme` / `toggleTheme` / `setTheme`），导出到 `@mic/utils`；语义变量与暗黑覆盖在 `@mic/components/theme/variables.css`（`:root` 与 `html.dark` 两套 `--mic-*`：bg / header-bg / aside-bg / logo-bg / border / text / text-inverse）。
+- **状态持久化**：`toggleTheme` / `setTheme` 将偏好写入 `localStorage`（key `theme`），下次访问自动应用；`initTheme` 在三个应用 `main.ts` 的 `app.mount` **之前**调用，避免首屏闪烁。
+- **系统偏好**：`initTheme` 在 `localStorage` 无值时读取 `matchMedia('(prefers-color-scheme: dark)')`，默认匹配系统的暗黑/浅色；用户一旦手动切换即持久化、不再跟随系统。
+- **平滑过渡**：`variables.css` 对内全局 `* { transition: background-color/color/border-color .3s ease }`（仅色彩属性，不影响尺寸/位移动画），主题切换时背景、文本、边框平滑渐变、无闪烁。`BasicLayout`、`LoginPage` 等布局色已改用语义变量；组件库暗黑由三个应用入口 `import 'element-plus/theme-chalk/dark/css-vars.css'` 提供，确保 `el-*` 控件在暗黑下对比度可读。
+- **跨应用同步（iframe 隔离）**：基座 `BasicLayout` 按钮 `toggleTheme` 直接改基座文档 + 更新单例 `currentTheme`；`MicroContainer.vue` 的 `globalData.theme` 绑定 `currentTheme`，micro-app 在 `:data` 变化时**自动下发**到子应用 iframe → 子应用 `App.vue` 的 `onGlobalData` 收到 `theme` 后 `setTheme` 同步。子应用独立运行（standalone）时由自身 `BasicLayout` 按钮切换；因 iframe 跨源 `localStorage` 不共享，集成态子应用不读自身存储、以基座下发为准（首屏取 `getGlobalData().theme`）。
+
 ## 已知约束
 
-- `build` 脚本用 `vue-tsc --noEmit && vite build`，不要改回 `vue-tsc -b`（无 composite 配置）。
+- `build` 脚本为 `vue-tsc --noEmit && vite build`（类型检查 + 打包）。TypeScript 固定为 `5.9.2`：`vue-tsc@3.3.8` 的 `@volar/typescript` shim 无法在 TS 7.x 新模块布局下定位 tsc，故不升级到 TS 7。请勿改回 `vue-tsc -b`（无 composite 配置）。
 - 环境变量：`VITE_API_BASE_URL`（全部应用）、`VITE_DOC_APP_URL`/`VITE_PERM_APP_URL`（main-app）、`VITE_BASE`（子应用生产 base 路径）。
 - keep-alive 缓存依赖组件 `name` 与 `include` 列表严格一致；新增需要缓存的页面时，务必在对应 `.vue` 加 `defineOptions({ name })` 并同步 `App.vue` 的 `include`。
 - 涉及权限的改动需同步三处：预设账号（`permission.ts`）、菜单过滤（`filterMenusByPermissions`）、路由守卫（越权重定向）。

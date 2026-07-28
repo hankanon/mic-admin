@@ -12,14 +12,14 @@
   },
   "dependencies": {
     "@mic/utils": "workspace:*",
-    "element-plus": "^2.9.0",
+    "element-plus": "2.14.3",
     "@element-plus/icons-vue": "^2.3.0",
-    "vue": "^3.5.0",
-    "vue-router": "^4.5.0"
+    "vue": "3.5.40",
+    "vue-router": "5.2.0"
   },
   "peerDependencies": {
-    "element-plus": "^2.9.0",
-    "vue": "^3.5.0",
-    "vue-router": "^4.5.0"
+    "element-plus": "2.14.3",
+    "vue": "3.5.40",
+    "vue-router": "5.2.0"
   }
 }

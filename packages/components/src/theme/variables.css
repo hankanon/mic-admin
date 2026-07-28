@@ -4,6 +4,45 @@
   --mic-header-bg: #ffffff;
   --mic-aside-bg: #001529;
   --mic-aside-active: #2a5298;
+  --mic-logo-bg: #000c17;
   --mic-border: #f0f0f0;
   --mic-text: #333333;
+  --mic-text-inverse: #ffffff;
+}
+
+/* 暗黑模式：覆盖语义变量；Element Plus 组件暗黑样式由
+   element-plus/theme-chalk/dark/css-vars.css 提供（在应用入口引入） */
+html.dark {
+  --mic-bg: #141414;
+  --mic-header-bg: #1f1f1f;
+  --mic-aside-bg: #0a0a0a;
+  --mic-aside-active: #2a5298;
+  --mic-logo-bg: #000000;
+  --mic-border: #303030;
+  --mic-text: #d0d0d0;
+  --mic-text-inverse: #ffffff;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--mic-bg);
+  color: var(--mic-text);
+}
+
+/* 主题切换时全局平滑过渡（仅过渡色彩相关属性，不影响尺寸/位移动画） */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+/* 水波纹扩散提交主题瞬间：临时禁用全局过渡，避免页面自身再闪一次 */
+html.mic-no-theme-transition *,
+html.mic-no-theme-transition *::before,
+html.mic-no-theme-transition *::after {
+  transition: none !important;
 }

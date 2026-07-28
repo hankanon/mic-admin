@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { BasicLayout, getMenusByApp, filterMenusByPermissions, type AppKey } from '@mic/components'
-import { isMicroEnv, getGlobalData, onGlobalData } from '@mic/utils'
+import { isMicroEnv, getGlobalData, onGlobalData, initTheme, useTheme } from '@mic/utils'
 import { useUserStore } from './store/user'
 
 const micro = isMicroEnv()
@@ -19,12 +19,24 @@ function syncUserFromGlobal() {
   const data = getGlobalData()
   if (data?.userInfo) userStore.userInfo = data.userInfo
 }
-onMounted(syncUserFromGlobal)
+const { setTheme } = useTheme()
+
+// 子应用独立文档也需主题：本地偏好/系统兜底，集成时以基座下发主题为准
+onMounted(() => {
+  initTheme()
+  syncUserFromGlobal()
+  if (micro) {
+    const data = getGlobalData()
+    if (data?.theme) setTheme(data.theme)
+  }
+})
 const stopGlobal = onGlobalData((data) => {
   if (data?.userInfo) userStore.userInfo = data.userInfo
+  if (data?.theme) setTheme(data.theme)
 })
 onUnmounted(stopGlobal)
 const userInfo = computed(() => ({
+  id: userStore.userInfo?.id != null ? String(userStore.userInfo.id) : undefined,
   name: userStore.userInfo?.name || '未登录',
   avatar: userStore.userInfo?.avatar,
 }))

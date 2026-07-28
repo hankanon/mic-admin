@@ -3,17 +3,19 @@ import { computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import microApp from '@micro-zoe/micro-app'
 import { useUserStore } from '../store/user'
-import { MicroMsgType } from '@mic/utils'
+import { MicroMsgType, useTheme } from '@mic/utils'
 import { microApps, type MicroAppItem } from '../micro/apps'
 
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
+const { currentTheme } = useTheme()
 
 const globalData = computed(() => ({
   token: userStore.token,
   userInfo: userStore.userInfo,
-  theme: 'light',
+  // 主题跟随基座单例状态；micro-app 会在 :data 变化时自动下发到子应用 iframe
+  theme: currentTheme.value,
 }))
 
 /** 当前基座路由所属的子应用（用于 v-show 显隐，实现子应用级缓存） */

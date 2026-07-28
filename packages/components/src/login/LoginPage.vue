@@ -137,4 +137,19 @@ function quickLogin(username: string) {
   font-size: 12px;
   color: #aaa;
 }
+
+/* 暗黑模式：登录页整体协调与对比度 */
+html.dark .login-page {
+  background: linear-gradient(135deg, #0b1a33 0%, #14233f 100%);
+}
+html.dark .login-page__title {
+  color: var(--mic-text-inverse);
+}
+html.dark .login-page__demo {
+  border-top-color: var(--mic-border);
+}
+html.dark .login-page__demo-label,
+html.dark .login-page__demo-hint {
+  color: var(--mic-text);
+}
 </style>
