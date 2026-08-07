@@ -41,8 +41,11 @@ const userInfo = computed(() => ({
   avatar: userStore.userInfo?.avatar,
 }))
 
-// 微前端环境 or 登录页：只渲染业务内容；独立运行非登录页：自套公共布局
-const useLayout = computed(() => !micro && route.path !== '/login')
+// 微前端环境 / 登录页 / 文章详情页：只渲染业务内容（详情页需完全隐藏主导航与侧边栏）；
+// 独立运行的其他页面：自套公共布局
+const useLayout = computed(
+  () => !micro && route.path !== '/login' && route.name !== 'doc-detail',
+)
 
 function handleLogout() {
   userStore.logout()
@@ -53,7 +56,7 @@ function handleLogout() {
 <template>
   <template v-if="micro || route.path === '/login'">
     <router-view v-slot="{ Component }">
-      <keep-alive include="DocList,DocPublish">
+      <keep-alive include="DocList,DocPublish,DocEdit,DocDetail">
         <component :is="Component" />
       </keep-alive>
     </router-view>
@@ -62,12 +65,12 @@ function handleLogout() {
     v-else-if="useLayout"
     :menus="menus"
     mode="standalone"
-    app-title="文档发布系统"
+    app-title="文档管理系统"
     :user-info="userInfo"
     @logout="handleLogout"
   >
     <router-view v-slot="{ Component }">
-      <keep-alive include="DocList,DocPublish">
+      <keep-alive include="DocList,DocPublish,DocEdit,DocDetail">
         <component :is="Component" />
       </keep-alive>
     </router-view>

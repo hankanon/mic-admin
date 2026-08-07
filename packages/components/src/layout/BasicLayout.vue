@@ -163,7 +163,7 @@ const guideSteps: GuideStep[] = [
   },
   {
     icon: 'Document',
-    title: '文档发布',
+    title: '文档管理',
     subtitle: '内容运营子应用',
     desc: '提供文档管理与发布相关能力。',
     features: ['文档列表：查看、检索与管理全部文档', '发布管理：编辑、提交与发布文档'],

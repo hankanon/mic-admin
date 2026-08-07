@@ -11,10 +11,11 @@
     "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.0",
     "@mic/components": "workspace:*",
     "@mic/utils": "workspace:*",
-    "@element-plus/icons-vue": "^2.3.0",
     "element-plus": "2.14.3",
+    "md-editor-v3": "^6.5.4",
     "pinia": "4.0.2",
     "vue": "3.5.40",
     "vue-router": "5.2.0"

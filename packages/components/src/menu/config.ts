@@ -16,13 +16,14 @@ export const menuConfig: MenuItem[] = [
   { key: 'home', title: '首页', icon: 'HomeFilled', path: '/' },
   {
     key: 'doc',
-    title: '文档发布',
+    title: '文档管理',
     icon: 'Document',
     appKey: 'doc',
-    children: [
-      { key: 'doc-list', title: '文档列表', path: '/doc/list' },
-      { key: 'doc-publish', title: '发布管理', path: '/doc/publish' },
-    ],
+      children: [
+        { key: 'doc-list', title: '文档列表', path: '/doc/list' },
+        { key: 'doc-publish', title: '发布管理', path: '/doc/publish' },
+        { key: 'doc-edit', title: '新增文档', path: '/doc/edit' },
+      ],
   },
   {
     key: 'sys',

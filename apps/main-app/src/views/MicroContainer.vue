@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import microApp from '@micro-zoe/micro-app'
 import { useUserStore } from '../store/user'
@@ -34,17 +34,29 @@ function getSubPath(app: MicroAppItem): string {
   return sub || '/'
 }
 
-/** 仅向当前激活的子应用同步子路由，避免打扰隐藏（已缓存）的应用 */
+/** 已挂载（iframe 渲染完成）的子应用集合，用于避免子应用未就绪时调用 router.push */
+const mountedApps = reactive(new Set<string>())
+
+/** 仅向当前激活且已渲染的子应用同步子路由，避免打扰隐藏（已缓存）的应用 */
 function syncSubRoute() {
   const name = activeAppName.value
   if (!name) return
   const app = microApps.find((a) => a.name === name)
   if (!app) return
+  // 子应用未渲染就绪（首次进入）时调用 microApp.router.push 会报「导航失败」，
+  // 跳过等待 @mounted 后再补同步（见 onAppMounted）
+  if (!mountedApps.has(name)) return
   try {
     microApp.router.push({ name, path: getSubPath(app) })
   } catch {
-    // 子应用尚未就绪时忽略，onMounted / 后续 watch 重试
+    // 极小概率仍未就绪时忽略，@mounted / 后续 watch 重试
   }
+}
+
+/** 子应用 iframe 渲染完成后记录并补同步，确保首次进入深层子路由也能落在正确页面 */
+function onAppMounted(name: string) {
+  mountedApps.add(name)
+  if (name === activeAppName.value) syncSubRoute()
 }
 
 onMounted(syncSubRoute)
@@ -81,6 +93,7 @@ function onDataChange(e: CustomEvent) {
       iframe
       v-show="app.name === activeAppName"
       @datachange="onDataChange"
+      @mounted="onAppMounted(app.name)"
     />
     <el-empty v-if="!activeAppName" description="未找到子应用配置" />
   </div>

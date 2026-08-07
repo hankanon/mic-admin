@@ -33,11 +33,13 @@ pnpm --filter @mic/doc-app typecheck   # 单个应用
 ```
 apps/
   main-app   基座：登录鉴权、布局、以 <micro-app iframe> 加载子应用（端口 3000）
-  doc-app    子应用：文档发布（端口 3001）
+  doc-app    子应用：文档管理（Markdown 编辑 / 主题配图 / 发布，端口 3001）
   sys-app    子应用：系统管理（菜单/角色/人员，端口 3003，后端 sys-server:4000）
 packages/
   components (@mic/components)  BasicLayout / AppMenu / LoginPage / menuConfig / 主题 / UserAvatar
-  utils      (@mic/utils)       request / auth / storage / helpers / constants / micro（环境判断+通信桥）/ permission（预设账号与权限）
+                               + 业务组件 PageCard / SearchForm
+  utils      (@mic/utils)       request / auth / storage / helpers / constants / micro（环境判断+通信桥）
+                               / permission（预设账号与权限）/ theme（明暗主题）
 ```
 
 ### 1. 公共包"源码直连"模式
@@ -48,7 +50,7 @@ packages/
 
 每个子应用既可独立启动，也可被基座集成。所有分支判断都基于 `isMicroEnv()`（读 `window.__MICRO_APP_ENVIRONMENT__`，在 `@mic/utils/micro`）：
 
-- **App.vue**：微前端环境只渲染 `<router-view>`（布局由基座提供）；独立运行时自套 `@mic/components` 的 `BasicLayout mode="standalone"`。
+- **App.vue**：微前端环境只渲染 `<router-view>`（布局由基座提供）；独立运行时自套 `@mic/components` 的 `BasicLayout mode="standalone"`。以下页面例外、即使独立运行也不套布局（只渲染业务内容）：登录页 `/login`、文章详情页 `doc-detail`（见 §13）。
 - **router**：`createWebHistory(getBaseRoute())` — 集成时用基座分配的 baseroute（`/doc`、`/perm`），独立时用 `/`；登录守卫仅独立运行时启用，集成时鉴权由基座负责。
 - **通信桥**（`packages/utils/src/micro/bridge.ts`）：
   - `getGlobalData` / `emitToMain` / `onMicroMessage` 在集成时走 micro-app 的 dispatch/getData，独立运行降级为 CustomEvent + mitt 本地总线。
@@ -66,7 +68,7 @@ packages/
 ### 4. 两层缓存策略（页面级 + 应用级）
 
 - **页面级（keep-alive）**：子应用 `App.vue` 用 `<router-view v-slot="{ Component }"><keep-alive include="...">` 包裹。被缓存页必须 `defineOptions({ name })` 且名字与 `include` 列表一致：
-  - doc-app：`DocList, DocPublish`
+  - doc-app：`DocList, DocPublish, DocEdit, DocDetail`
   - sys-app：`MenuManage, RoleManage, UserManage`
   两套形态（micro 直接渲染 / BasicLayout 内）均已加 keep-alive。
 - **应用级（v-show）**：基座 `MicroContainer` 同时挂载全部 `<micro-app>`，靠 `v-show` 控制 `activeAppName` 显隐，子应用切走不卸载，返回时状态与查询条件保留。
@@ -85,6 +87,7 @@ packages/
 
 - 菜单集中配置在 `packages/components/src/menu/config.ts`（`menuConfig` / `getMenusByApp` / `matchMenuKey` / `filterMenusByPermissions`）。菜单激活匹配统一先 `stripAppPrefix` 剥掉 `/doc`、`/perm` 前缀再比较，保证集成/独立两种路径形态下都能正确高亮。
 - `BasicLayout` 登出不直接处理跨环境逻辑：standalone 模式自行 `router.push('/login')`，否则 `emit('logout')` 由宿主（基座 MainLayout 或子应用 App.vue）处理；同时 `emit('switch-account', username)` 由宿主处理角色切换。
+- **菜单叶子即页签**：基座级页签由 `menuConfig` 的叶子节点（如 `doc-list` / `doc-edit`）生成（见 §10）。需要「独立页签入口」的功能（如新增文档、文章详情）必须在 `menuConfig` 加对应叶子；反之，不希望出现在导航/页签的功能（如文章详情页）**不要**加菜单叶子，改用按钮跳转 + 路由守卫控制入口（见 §13）。
 
 ### 7. 跨域与端口约定
 
@@ -119,7 +122,7 @@ packages/
 
 - **展开态**：`el-aside` 宽 `220px`，渲染完整 `AppMenu`（菜单分组 + 子项，激活高亮不变），布局结构与之前一致。
 - **收起态**：`el-aside` 宽 `64px`，不再渲染 `AppMenu`，改为仅遍历**顶级菜单项**的「图标栏」（`collapse-bar`）：每个子应用（home / doc / sys）仅显示一个图标，`flex` 竖向居中、统一 `46×46` 尺寸与 `8px` 间距；当前路由落在某子应用范围内时该图标高亮（`isTopActive`）。
-- **悬浮提示**：收起态每个图标包 `el-tooltip`（placement `right`）展示对应子应用 `title`（如「文档发布」）；图标被 `el-aside` 裁剪但 tooltip 经 teleport 到 body 显示到主区域，不受 `overflow:hidden` 影响。
+- **悬浮提示**：收起态每个图标包 `el-tooltip`（placement `right`）展示对应子应用 `title`（如「文档管理」）；图标被 `el-aside` 裁剪但 tooltip 经 teleport 到 body 显示到主区域，不受 `overflow:hidden` 影响。
 - **点击导航**：收起态点击图标 → `goTop(item)` 跳转到该子应用首个页面（顶级 `path` 或 `children[0].path`），`host` / `standalone` 依 `mode` 走前缀逻辑，与页签同步联动。
 - **平滑动画**：`el-aside` 加 `transition: width 0.28s ease`，展开/收起时侧边栏宽度平滑过渡，不影响路由、页签与内容区。
 - 该功能仅依赖 `BasicLayout` 内部状态，基座（`MainLayout`）与子应用独立运行（`App.vue` standalone）自动获得，无需宿主额外接入。
@@ -134,9 +137,32 @@ packages/
 - **平滑过渡**：`variables.css` 对内全局 `* { transition: background-color/color/border-color .3s ease }`（仅色彩属性，不影响尺寸/位移动画），主题切换时背景、文本、边框平滑渐变、无闪烁。`BasicLayout`、`LoginPage` 等布局色已改用语义变量；组件库暗黑由三个应用入口 `import 'element-plus/theme-chalk/dark/css-vars.css'` 提供，确保 `el-*` 控件在暗黑下对比度可读。
 - **跨应用同步（iframe 隔离）**：基座 `BasicLayout` 按钮 `toggleTheme` 直接改基座文档 + 更新单例 `currentTheme`；`MicroContainer.vue` 的 `globalData.theme` 绑定 `currentTheme`，micro-app 在 `:data` 变化时**自动下发**到子应用 iframe → 子应用 `App.vue` 的 `onGlobalData` 收到 `theme` 后 `setTheme` 同步。子应用独立运行（standalone）时由自身 `BasicLayout` 按钮切换；因 iframe 跨源 `localStorage` 不共享，集成态子应用不读自身存储、以基座下发为准（首屏取 `getGlobalData().theme`）。
 
+### 13. 文档管理子应用（doc-app）功能约定
+
+doc-app 提供文档的列表 / 发布 / 编辑 / 详情，数据来自本地 Pinia store（`apps/doc-app/src/store/doc.ts`，含 `DOC_CATEGORIES`、`DOC_DEFAULT_COVER` 内联 SVG 占位图、`useDocStore`）。
+
+- **Markdown 编辑**：内容编辑用开源组件 `md-editor-v3`（具名导出 `MdEditor` / `MdPreview`，**勿用默认导入**）。封装于 `apps/doc-app/src/components/MarkdownEditor.vue`：
+  - `:no-mermaid="true"` 关闭 mermaid 自动从 unpkg CDN 加载（避免进入编辑页时报 `mermaid.min.js ... reading 'mermaid'` 非致命错误，并去掉外部网络依赖）；
+  - 跟随 `useTheme()` 同步明暗主题（`editorTheme`）；
+  - 工具栏已移除内置 save，对外仅 `v-model`（`update:modelValue`）。
+- **主题配图（CoverUpload）**：`apps/doc-app/src/components/CoverUpload.vue` 支持本地上传（读为 dataURL）或填 URL；校验 `image/jpeg|image/png` 且 ≤2MB（`ElMessage` 提示超规格），空值时列表/详情回退到 `DOC_DEFAULT_COVER` 占位图。
+- **页面路由与页签**（见 §6 / §10）：菜单叶子 `doc-list` / `doc-publish` / `doc-edit` 生成对应基座页签；`doc-edit` 路由支持 `/edit`（新增）与 `/edit/:id`（编辑）复用同一组件。
+- **文章详情页严格访问控制**（重点）：
+  - 详情页 `doc-detail`（`/detail/:id`）**刻意不加入菜单 leaf**，因此无法通过主导航 / 页签进入；
+  - 进入详情页**只能**由文档列表的「详情」按钮触发：`DocList.goDetail(row)` 先调用 `grantDetailAccess(row.id)`（写入一次性 `sessionStorage` 令牌）再 `router.push`；
+  - `apps/doc-app/src/router/detailAccess.ts` 提供 `grantDetailAccess` / `verifyDetailAccess`；`router/index.ts` 的 `beforeEach` 守卫校验：持有匹配令牌 **或** 直接来自 `doc-list` 路由才放行，否则 `ElMessage.error('无权限访问，请通过文档列表进入')` 并 redirect 到 `doc-list`；令牌消费即清除，刷新 / 二次直接进入均被拦截；
+  - **隐藏 chrome**：`App.vue` 的 `useLayout` 在 `doc-detail` 路由下为 `false`（连同 `/login`），即独立运行时详情页也不套 `BasicLayout`，侧边栏与主菜单完全消失；集成态详情页本来只渲染 `<router-view>`（chrome 在基座），且因无菜单叶子基座不会为其开页签。
+
+### 14. 业务组件（@mic/components）
+
+- `PageCard`：通用页面卡片，含 `title` / `subtitle` / 默认插槽 / `footer` 插槽 / `bodyPadding`（默认 `true`，置 `false` 时内容区 `padding:0`）。
+- `SearchForm`：列表筛选卡片容器（浅色 `.search-form`），由 `packages/components/src/index.ts` 统一导出。
+
 ## 已知约束
 
 - `build` 脚本为 `vue-tsc --noEmit && vite build`（类型检查 + 打包）。TypeScript 固定为 `5.9.2`：`vue-tsc@3.3.8` 的 `@volar/typescript` shim 无法在 TS 7.x 新模块布局下定位 tsc，故不升级到 TS 7。请勿改回 `vue-tsc -b`（无 composite 配置）。
 - 环境变量：`VITE_API_BASE_URL`（全部应用）、`VITE_DOC_APP_URL`/`VITE_PERM_APP_URL`（main-app）、`VITE_BASE`（子应用生产 base 路径）。
 - keep-alive 缓存依赖组件 `name` 与 `include` 列表严格一致；新增需要缓存的页面时，务必在对应 `.vue` 加 `defineOptions({ name })` 并同步 `App.vue` 的 `include`。
 - 涉及权限的改动需同步三处：预设账号（`permission.ts`）、菜单过滤（`filterMenusByPermissions`）、路由守卫（越权重定向）。
+- `md-editor-v3` 必须具名导入（`import { MdEditor }`）；编辑器体积较大，`doc-app` 构建时 `index` chunk 会超过 500kB（体积告警，非阻塞，不影响运行）。如要优化首屏可对编辑器做动态 `import()` 分包。
+- 文章详情页属于「受限入口」页面：**不要**在 `menuConfig` 为其加菜单叶子（否则会出现在导航/页签），且任何改到 `App.vue` 的 `useLayout` 或路由守卫的改动都要保持「详情页隐藏布局 + 仅列表可进」的约束。

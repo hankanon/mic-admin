@@ -1,150 +1,164 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { PageCard, Breadcrumb } from '@mic/components'
-import { formatDate } from '@mic/utils'
+import { computed, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox, type UploadUserFile } from 'element-plus'
+import { PageCard, SearchForm, Breadcrumb } from '@mic/components'
+import { DOC_CATEGORIES, DOC_DEFAULT_COVER, useDocStore, type DocItem, type DocStatus } from '../store/doc'
+import { grantDetailAccess } from '../router/detailAccess'
 
 defineOptions({ name: 'DocList' })
 
-interface DocItem {
-  id: number
-  title: string
-  author: string
-  status: 'draft' | 'published' | 'archived'
-  updatedAt: string
-}
+const router = useRouter()
+const docStore = useDocStore()
 
-const docs = ref<DocItem[]>([
-  { id: 1, title: '微前端接入指南', author: '张三', status: 'published', updatedAt: '2026-07-20 10:00:00' },
-  { id: 2, title: '组件库使用手册', author: '李四', status: 'draft', updatedAt: '2026-07-21 14:30:00' },
-  { id: 3, title: '权限模型设计', author: '王五', status: 'archived', updatedAt: '2026-07-22 09:15:00' },
-])
+const categories = DOC_CATEGORIES
 
-const statusMap: Record<DocItem['status'], { text: string; type: 'success' | 'info' | 'warning' }> = {
-  published: { text: '已发布', type: 'success' },
-  draft: { text: '草稿', type: 'warning' },
-  archived: { text: '已归档', type: 'info' },
-}
+const query = reactive({ title: '', category: '', status: '' as DocStatus | '' })
+const activeQuery = reactive({ title: '', category: '', status: '' as DocStatus | '' })
 
-const statusOptions = [
-  { label: '已发布', value: 'published' },
-  { label: '草稿', value: 'draft' },
-  { label: '已归档', value: 'archived' },
-]
-
-/** 查询条件 */
-interface Query {
-  keyword: string
-  author: string
-  status: DocItem['status'] | ''
-  dateRange: [string, string] | null
-}
-
-const defaultQuery = (): Query => ({ keyword: '', author: '', status: '', dateRange: null })
-const query = ref<Query>(defaultQuery())
-/** 点击「查询」后才生效的条件快照 */
-const activeQuery = ref<Query>(defaultQuery())
+const docs = computed(() => docStore.docs)
 
 const filteredDocs = computed(() => {
-  const q = activeQuery.value
-  return docs.value.filter((doc) => {
-    if (q.keyword && !doc.title.toLowerCase().includes(q.keyword.trim().toLowerCase())) return false
-    if (q.author && !doc.author.includes(q.author.trim())) return false
-    if (q.status && doc.status !== q.status) return false
-    if (q.dateRange && q.dateRange.length === 2) {
-      const t = new Date(doc.updatedAt).getTime()
-      const start = new Date(`${q.dateRange[0]} 00:00:00`).getTime()
-      const end = new Date(`${q.dateRange[1]} 23:59:59`).getTime()
-      if (t < start || t > end) return false
-    }
-    return true
+  return docs.value.filter((d) => {
+    const okTitle = !activeQuery.title || d.title.includes(activeQuery.title)
+    const okCat = !activeQuery.category || d.category === activeQuery.category
+    const okStatus = !activeQuery.status || d.status === activeQuery.status
+    return okTitle && okCat && okStatus
   })
 })
 
-function handleSearch() {
-  activeQuery.value = { ...query.value, dateRange: query.value.dateRange ? [...query.value.dateRange] : null }
+function onSearch() {
+  activeQuery.title = query.title.trim()
+  activeQuery.category = query.category
+  activeQuery.status = query.status
 }
 
-function handleReset() {
-  query.value = defaultQuery()
-  activeQuery.value = defaultQuery()
+function onReset() {
+  query.title = ''
+  query.category = ''
+  query.status = ''
+  activeQuery.title = ''
+  activeQuery.category = ''
+  activeQuery.status = ''
 }
+
+const STATUS_TEXT: Record<DocStatus, string> = {
+  draft: '草稿',
+  published: '已发布',
+  archived: '已归档',
+}
+
+function statusTagType(status: DocStatus): 'info' | 'success' | 'warning' {
+  if (status === 'published') return 'success'
+  if (status === 'archived') return 'warning'
+  return 'info'
+}
+
+function translateStatus(status: DocStatus): string {
+  return STATUS_TEXT[status]
+}
+
+function goCreate() {
+  router.push('/edit')
+}
+
+function goEdit(row: DocItem) {
+  router.push(`/edit/${row.id}`)
+}
+
+function goDetail(row: DocItem) {
+  // 授予一次性访问令牌，详情页守卫据此放行进访问问
+  grantDetailAccess(row.id)
+  router.push(`/detail/${row.id}`)
+}
+
+async function onDelete(row: DocItem) {
+  try {
+    await ElMessageBox.confirm(`确定删除文档「${row.title}」吗？`, '提示', {
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+  } catch {
+    return
+  }
+  docStore.remove(row.id)
+  ElMessage.success('已删除')
+}
+
+// 占位：保留上传/导入入口交互（当前为演示）
+const fileList = computed<UploadUserFile[]>(() => [])
 </script>
 
 <template>
-  <div>
+  <div class="doc-list">
     <Breadcrumb />
+
+    <SearchForm title="文档筛选" @search="onSearch" @reset="onReset">
+      <el-form-item label="标题">
+        <el-input v-model="query.title" placeholder="按标题搜索" clearable />
+      </el-form-item>
+      <el-form-item label="分类">
+        <el-select v-model="query.category" placeholder="全部分类" clearable style="width: 160px">
+          <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="状态">
+        <el-select v-model="query.status" placeholder="全部状态" clearable style="width: 140px">
+          <el-option label="草稿" value="draft" />
+          <el-option label="已发布" value="published" />
+          <el-option label="已归档" value="archived" />
+        </el-select>
+      </el-form-item>
+    </SearchForm>
+
     <PageCard title="文档列表">
       <template #extra>
-        <el-button type="primary" size="small">新建文档</el-button>
+        <div class="doc-list__toolbar">
+          <el-upload
+            :auto-upload="false"
+            :show-file-list="false"
+            :file-list="fileList"
+            accept=".md"
+            disabled
+          >
+            <el-button type="default">导入</el-button>
+          </el-upload>
+          <el-button type="primary" @click="goCreate">新增文档</el-button>
+        </div>
       </template>
 
-      <!-- 查询条件 -->
-      <el-form :model="query" inline class="search-form" @submit.prevent="handleSearch">
-        <el-form-item label="标题">
-          <el-input
-            v-model="query.keyword"
-            placeholder="按标题关键词搜索"
-            clearable
-            style="width: 200px"
-            @keyup.enter="handleSearch"
-            @clear="handleSearch"
-          />
-        </el-form-item>
-        <el-form-item label="作者">
-          <el-input
-            v-model="query.author"
-            placeholder="按作者搜索"
-            clearable
-            style="width: 140px"
-            @keyup.enter="handleSearch"
-            @clear="handleSearch"
-          />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部状态" clearable style="width: 140px" @change="handleSearch">
-            <el-option v-for="opt in statusOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="更新时间">
-          <el-date-picker
-            v-model="query.dateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            style="width: 260px"
-            @change="handleSearch"
-          />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-
-      <el-table :data="filteredDocs" border stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="title" label="标题" />
-        <el-table-column prop="author" label="作者" width="120" />
-        <el-table-column label="状态" width="120">
+      <el-table :data="filteredDocs" stripe border height="100%" class="doc-list__table">
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column label="主题配图" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusMap[row.status as DocItem['status']].type">
-              {{ statusMap[row.status as DocItem['status']].text }}
+            <img
+              :src="row.cover || DOC_DEFAULT_COVER"
+              alt="主题配图"
+              class="doc-list__cover"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="category" label="分类" width="120" />
+        <el-table-column prop="author" label="作者" width="120" />
+        <el-table-column label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="statusTagType(row.status)" effect="light">
+              {{ translateStatus(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="更新时间" width="200">
-          <template #default="{ row }">{{ formatDate(row.updatedAt) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="160">
-          <template #default>
-            <el-button link type="primary" size="small">编辑</el-button>
-            <el-button link type="danger" size="small">删除</el-button>
+        <el-table-column prop="updatedAt" label="更新时间" width="160" />
+        <el-table-column label="操作" width="220" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="goDetail(row)">详情</el-button>
+            <el-button link type="primary" @click="goEdit(row)">编辑</el-button>
+            <el-button link type="danger" @click="onDelete(row)">删除</el-button>
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="没有符合条件的文档" :image-size="80" />
+          <el-empty description="暂无文档" />
         </template>
       </el-table>
     </PageCard>
@@ -152,10 +166,28 @@ function handleReset() {
 </template>
 
 <style scoped>
-.search-form {
-  padding: 16px 16px 0;
-  margin-bottom: 16px;
-  background: var(--el-fill-color-lighter);
-  border-radius: 6px;
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: 100%;
+}
+
+.doc-list__toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.doc-list__table {
+  width: 100%;
+}
+
+.doc-list__cover {
+  width: 96px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
 }
 </style>
