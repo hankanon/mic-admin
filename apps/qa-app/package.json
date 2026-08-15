@@ -13,6 +13,7 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.0",
     "@mic/components": "workspace:*",
+    "md-editor-v3": "^6.5.4",
     "@mic/utils": "workspace:*",
     "element-plus": "2.14.3",
     "pinia": "4.0.2",
