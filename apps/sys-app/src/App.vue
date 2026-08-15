@@ -12,7 +12,12 @@ const userStore = useUserStore()
 
 const appKey: AppKey = 'sys'
 const permissions = computed(() => userStore.userInfo?.permissions ?? ['*'])
-const menus = computed(() => filterMenusByPermissions(getMenusByApp(appKey), permissions.value))
+const allMenus = computed(() => filterMenusByPermissions(getMenusByApp(appKey), permissions.value))
+// 新布局：左侧仅展示当前应用分组的 children（独立运行无顶部菜单，直接列子项）
+const menus = computed(() => {
+  const group = allMenus.value.find((m) => m.appKey === appKey)
+  return group?.children ?? []
+})
 
 // 微前端环境：同步主应用下发的用户信息（含权限），切换角色后实时生效
 function syncUserFromGlobal() {

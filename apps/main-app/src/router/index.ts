@@ -15,7 +15,7 @@ const router = createRouter({
       path: '/',
       component: MainLayout,
       children: [
-        { path: '', name: 'home', component: Home, meta: { title: '首页' } },
+        { path: '', name: 'home', component: Home, meta: { title: '首页大盘' } },
         { path: 'doc', name: 'doc', component: MicroContainer, meta: { title: '文档发布' } },
         { path: 'doc/:pathMatch(.*)*', name: 'doc-wild', component: MicroContainer },
         { path: 'sys', name: 'sys', component: MicroContainer, meta: { title: '系统管理' } },

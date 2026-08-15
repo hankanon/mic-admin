@@ -13,7 +13,7 @@ export interface MenuItem {
 }
 
 export const menuConfig: MenuItem[] = [
-  { key: 'home', title: '首页', icon: 'HomeFilled', path: '/' },
+  { key: 'home', title: '首页大盘', icon: 'HomeFilled', path: '/' },
   {
     key: 'doc',
     title: '文档管理',

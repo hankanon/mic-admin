@@ -4,7 +4,7 @@
   --mic-header-bg: #ffffff;
   --mic-aside-bg: #001529;
   --mic-aside-active: #2a5298;
-  --mic-logo-bg: #000c17;
+  --mic-logo-bg: #2a5298;
   --mic-border: #f0f0f0;
   --mic-text: #333333;
   --mic-text-inverse: #ffffff;
@@ -17,7 +17,7 @@ html.dark {
   --mic-header-bg: #1f1f1f;
   --mic-aside-bg: #0a0a0a;
   --mic-aside-active: #2a5298;
-  --mic-logo-bg: #000000;
+  --mic-logo-bg: #2a5298;
   --mic-border: #303030;
   --mic-text: #d0d0d0;
   --mic-text-inverse: #ffffff;

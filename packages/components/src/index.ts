@@ -1,5 +1,7 @@
 export { default as BasicLayout } from './layout/BasicLayout.vue'
+export { default as LayoutActions } from './layout/LayoutActions.vue'
 export { default as AppMenu } from './menu/AppMenu.vue'
+export { default as TopNavMenu } from './menu/TopNavMenu.vue'
 export { default as LoginPage } from './login/LoginPage.vue'
 export { default as UserAvatar } from './business/UserAvatar.vue'
 export { default as Breadcrumb } from './business/Breadcrumb.vue'
@@ -15,3 +17,6 @@ export {
   type MenuItem,
   type AppKey,
 } from './menu/config'
+
+export { useGuide, type GuideOptions } from './guide/useGuide'
+export { defaultGuideSteps, type GuideStep } from './guide/steps'
