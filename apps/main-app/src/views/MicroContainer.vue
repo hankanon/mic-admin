@@ -21,14 +21,35 @@ const globalData = computed(() => ({
 /** 当前基座路由所属的子应用（用于 v-show 显隐，实现子应用级缓存） */
 const activeAppName = computed<string | undefined>(() => {
   const path = route.fullPath.replace(/^#/, '')
-  return microApps.find(
-    (a) => path === a.baseroute || path === a.baseroute + '/' || path.startsWith(a.baseroute + '/'),
-  )?.name
+  // dashboard-app baseroute 为 '/dashboard'，但数据总览路径为 '/' 也属于该应用
+  const dash = microApps.find((a) => a.appKey === 'dashboard')
+  if (dash) {
+    const others = microApps.filter((a) => a.appKey !== 'dashboard')
+    const belongsToOther = others.some(
+      (a) => path === a.baseroute || path === a.baseroute + '/' || path.startsWith(a.baseroute + '/'),
+    )
+    // 根路径 '/' 或 '/dashboard' 开头且不属于其他子应用 → dashboard
+    if (!belongsToOther && (path === '/' || path === '' || path.startsWith('/dashboard'))) {
+      return dash.name
+    }
+  }
+  return microApps
+    .filter((a) => a.appKey !== 'dashboard')
+    .find(
+      (a) => path === a.baseroute || path === a.baseroute + '/' || path.startsWith(a.baseroute + '/'),
+    )?.name
 })
 
 /** 从基座路由提取某子应用的子路径（去掉 baseroute 前缀） */
 function getSubPath(app: MicroAppItem): string {
   const path = route.fullPath.replace(/^#/, '')
+  // dashboard-app：根路径 '/' → 子应用 '/'（数据总览）；
+  // '/dashboard/xxx' → 子应用 '/dashboard/xxx'（子应用路由也带 /dashboard 前缀）
+  if (app.appKey === 'dashboard') {
+    if (path === '/' || path === '') return '/'
+    // baseroute '/dashboard'，子路径保留 '/dashboard/xxx'
+    return path
+  }
   if (path === app.baseroute || path === app.baseroute + '/') return '/'
   const sub = path.startsWith(app.baseroute + '/') ? path.slice(app.baseroute.length) : '/'
   return sub || '/'

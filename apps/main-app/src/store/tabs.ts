@@ -10,7 +10,7 @@ export interface TabItem {
   affix?: boolean
 }
 
-const HOME_TAB: TabItem = { path: '/', title: '首页大盘', key: 'home', affix: true }
+const HOME_TAB: TabItem = { path: '/', title: '首页大盘', key: 'dashboard-overview', affix: true }
 
 export const useTabsStore = defineStore('tabs', () => {
   const tabs = ref<TabItem[]>([{ ...HOME_TAB }])

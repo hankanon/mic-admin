@@ -40,8 +40,12 @@ function isTopActive(item: MenuItem): boolean {
     const target = stripAppPrefix(item.path)
     return cur === target || cur.startsWith(target + '/')
   }
+  // dashboard baseroute 为 '/dashboard'，数据总览路径为 '/'：匹配根及 /dashboard 子页面（排除 doc/sys）
+  if (item.appKey === 'dashboard') {
+    if (full === '/' || full === '') return true
+    return full.startsWith('/dashboard') && !full.startsWith('/doc') && !full.startsWith('/sys')
+  }
   if (item.appKey) return full.startsWith('/' + item.appKey)
-  if (item.key === 'home') return full === '/' || full === ''
   return false
 }
 

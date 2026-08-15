@@ -67,9 +67,9 @@ export const defaultGuideSteps: GuideStep[] = [
     align: 'center',
   },
   {
-    selector: '[data-menu-key="home"]',
+    selector: '[data-menu-key="dashboard-overview"]',
     title: '首页大盘',
-    description: '基座欢迎页，登录后的默认着陆页，可快速概览各子应用入口。',
+    description: '登录后的默认着陆页，提供数据总览、访问分析等大盘能力。',
     side: 'right',
     align: 'center',
   },
