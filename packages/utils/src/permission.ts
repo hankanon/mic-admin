@@ -52,7 +52,9 @@ export const SWITCHABLE_ACCOUNTS = Object.values(ACCOUNT_PRESETS).map((a) => ({
 export function hasAppPermission(permissions: string[] | undefined, appKey: string): boolean {
   if (!permissions || permissions.length === 0) return false
   if (permissions.includes('*')) return true
-  return permissions.includes(appKey)
+  if (permissions.includes(appKey)) return true
+  // 兼容细粒度权限格式（如 doc:view / sys:menu:view），前缀匹配到应用 key 即视为拥有该应用权限
+  return permissions.some((p) => p.startsWith(`${appKey}:`))
 }
 
 /** 校验账号（用户名 + 密码），成功返回预设账号，失败返回 null */

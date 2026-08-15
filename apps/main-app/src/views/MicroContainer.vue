@@ -3,7 +3,7 @@ import { computed, watch, onMounted, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import microApp from '@micro-zoe/micro-app'
 import { useUserStore } from '../store/user'
-import { MicroMsgType, useTheme } from '@mic/utils'
+import { MicroMsgType, useTheme, resolveAppRoute, type AppKey } from '@mic/utils'
 import { microApps, type MicroAppItem } from '../micro/apps'
 
 const userStore = useUserStore()
@@ -95,6 +95,13 @@ function onDataChange(e: CustomEvent) {
     case MicroMsgType.RefreshUser:
       microApp.setGlobalData({ token: userStore.token, userInfo: userStore.userInfo })
       break
+    case MicroMsgType.Navigate: {
+      // 子应用请求跨应用跳转：切换到基座对应完整路由（baseroute + 子路径）
+      const appKey = data.appKey as AppKey
+      const subPath = typeof data.path === 'string' ? data.path : '/'
+      if (appKey) router.push(resolveAppRoute(appKey, subPath))
+      break
+    }
     default:
       break
   }

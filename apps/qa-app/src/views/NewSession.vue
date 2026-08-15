@@ -974,13 +974,9 @@ function onBodyClick(e: MouseEvent) {
 }
 </style>
 
-<!-- 全局样式：让容器撑满高度并禁止外层滚动，确保输入框固定底部 -->
+<!-- 全局样式：仅 qa-app 需要的特殊覆盖（高度链路已由公共主题 variables.css 提供） -->
 <style>
-/* qa-app root：独立运行和集成态均生效 */
-html, body, #app {
-  height: 100%;
-  margin: 0;
-}
+/* qa-app root 禁止外层滚动，确保输入框吸底 */
 #app {
   overflow: hidden;
 }
