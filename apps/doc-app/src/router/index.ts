@@ -8,6 +8,12 @@ import DocPublish from '../views/DocPublish.vue'
 import DocEdit from '../views/DocEdit.vue'
 import DocDetail from '../views/DocDetail.vue'
 import { verifyDetailAccess } from './detailAccess'
+import ProTableDemos from '../views/protable-demos/ProTableDemos.vue'
+import MultiHeaderDemo from '../views/protable-demos/MultiHeaderDemo.vue'
+import SlotDemo from '../views/protable-demos/SlotDemo.vue'
+import SingleSelectDemo from '../views/protable-demos/SingleSelectDemo.vue'
+import MultiSelectDemo from '../views/protable-demos/MultiSelectDemo.vue'
+import SpanDemo from '../views/protable-demos/SpanDemo.vue'
 
 const router = createRouter({
   // 集成态用基座分配的 baseroute，独立运行用 '/'；iframe 沙箱下子应用须用 history 路由，
@@ -20,6 +26,14 @@ const router = createRouter({
     { path: '/edit', name: 'doc-edit-new', component: DocEdit, meta: { title: '新增文档' } },
     { path: '/edit/:id', name: 'doc-edit', component: DocEdit, meta: { title: '编辑文档' } },
     { path: '/detail/:id', name: 'doc-detail', component: DocDetail, meta: { title: '文章详情' } },
+    { path: '/preview', name: 'doc-preview', component: () => import('../views/DocPreview.vue'), meta: { title: '文档预览' } },
+    // ProTable 示例（文档管理 - 示例展示菜单）
+    { path: '/protable', name: 'protable-index', component: ProTableDemos, meta: { title: '示例总览' } },
+    { path: '/protable/multi-header', name: 'protable-multi-header', component: MultiHeaderDemo, meta: { title: '多表头示例' } },
+    { path: '/protable/slot', name: 'protable-slot', component: SlotDemo, meta: { title: '自定义插槽示例' } },
+    { path: '/protable/single', name: 'protable-single', component: SingleSelectDemo, meta: { title: '单选模式示例' } },
+    { path: '/protable/multi', name: 'protable-multi', component: MultiSelectDemo, meta: { title: '多选模式示例' } },
+    { path: '/protable/span', name: 'protable-span', component: SpanDemo, meta: { title: '单元格合并示例' } },
     { path: '', redirect: '/list' },
   ],
 })

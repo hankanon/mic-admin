@@ -35,6 +35,20 @@ export const menuConfig: MenuItem[] = [
         { key: 'doc-list', title: '文档列表', path: '/doc/list' },
         { key: 'doc-publish', title: '发布管理', path: '/doc/publish' },
         { key: 'doc-edit', title: '新增文档', path: '/doc/edit' },
+        { key: 'doc-preview', title: '文档预览', path: '/doc/preview' },
+        {
+          key: 'doc-demo',
+          title: '示例展示',
+          path: '/doc/protable',
+          children: [
+            { key: 'doc-demo-index', title: '示例总览', path: '/doc/protable' },
+            { key: 'doc-demo-multi-header', title: '多表头示例', path: '/doc/protable/multi-header' },
+            { key: 'doc-demo-slot', title: '自定义插槽示例', path: '/doc/protable/slot' },
+            { key: 'doc-demo-single', title: '单选模式示例', path: '/doc/protable/single' },
+            { key: 'doc-demo-multi', title: '多选模式示例', path: '/doc/protable/multi' },
+            { key: 'doc-demo-span', title: '单元格合并示例', path: '/doc/protable/span' },
+          ],
+        },
       ],
   },
   {

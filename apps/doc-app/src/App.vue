@@ -61,7 +61,7 @@ function handleLogout() {
 <template>
   <template v-if="micro || route.path === '/login'">
     <router-view v-slot="{ Component }">
-      <keep-alive include="DocList,DocPublish,DocEdit,DocDetail">
+      <keep-alive include="DocList,DocPublish,DocEdit,DocDetail,DocPreview">
         <component :is="Component" />
       </keep-alive>
     </router-view>
@@ -75,7 +75,7 @@ function handleLogout() {
     @logout="handleLogout"
   >
     <router-view v-slot="{ Component }">
-      <keep-alive include="DocList,DocPublish,DocEdit,DocDetail">
+      <keep-alive include="DocList,DocPublish,DocEdit,DocDetail,DocPreview">
         <component :is="Component" />
       </keep-alive>
     </router-view>

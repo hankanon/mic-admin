@@ -7,6 +7,16 @@ export { default as UserAvatar } from './business/UserAvatar.vue'
 export { default as Breadcrumb } from './business/Breadcrumb.vue'
 export { default as PageCard } from './business/PageCard.vue'
 export { default as SearchForm } from './business/SearchForm.vue'
+export { default as ProTable } from './table/ProTable.vue'
+export type {
+  ProTableColumn,
+  ProTableRequest,
+  ProTableRequestParams,
+  ProTableResult,
+  ProPaginationConfig,
+  ProTableExpose,
+  ProTableToolbarScope,
+} from './table/types'
 
 export {
   menuConfig,

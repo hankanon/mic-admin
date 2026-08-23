@@ -16,8 +16,10 @@
     "@mic/utils": "workspace:*",
     "element-plus": "2.14.3",
     "md-editor-v3": "^6.5.4",
+    "pdfjs-dist": "^6.2.108",
     "pinia": "4.0.2",
     "vue": "3.5.40",
+    "vue-pdf-embed": "^2.1.5",
     "vue-router": "5.2.0"
   },
   "devDependencies": {
