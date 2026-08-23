@@ -423,7 +423,7 @@ function onReset()  { Object.assign(query, initial); activeQuery.value = {} }
 
 ## 13. 已知约束（重建务必遵守）
 
-- `build` 脚本 `vue-tsc --noEmit && vite build`，勿改回 `vue-tsc -b`（无 composite 配置）。
+- `build` 脚本为 `vue-tsc --noEmit && vite build`（类型检查 + 打包）。TypeScript 固定为 `5.9.2`：`vue-tsc@3.3.8` 的 `@volar/typescript` shim 无法在 TS 7.x 新模块布局下定位 tsc，故不升级到 TS 7。勿改回 `vue-tsc -b`（无 composite 配置）。
 - micro-app 版本锁 `1.0.0-rc.32`，勿升 `^1.0.0`。
 - 公共包 `exports` 指向 `src/index.ts` 且各应用 `optimizeDeps.exclude`，否则多实例 / 热更新失效。
 - keep-alive 组件 `name` 与 `include` 严格一致。

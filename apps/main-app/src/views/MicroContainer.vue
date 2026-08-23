@@ -1,48 +1,83 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { computed, watch, onMounted, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import microApp from '@micro-zoe/micro-app'
 import { useUserStore } from '../store/user'
-import { MicroMsgType } from '@mic/utils'
+import { MicroMsgType, useTheme, resolveAppRoute, type AppKey } from '@mic/utils'
 import { microApps, type MicroAppItem } from '../micro/apps'
 
 const userStore = useUserStore()
 const router = useRouter()
 const route = useRoute()
+const { currentTheme } = useTheme()
 
 const globalData = computed(() => ({
   token: userStore.token,
   userInfo: userStore.userInfo,
-  theme: 'light',
+  // 主题跟随基座单例状态；micro-app 会在 :data 变化时自动下发到子应用 iframe
+  theme: currentTheme.value,
 }))
 
 /** 当前基座路由所属的子应用（用于 v-show 显隐，实现子应用级缓存） */
 const activeAppName = computed<string | undefined>(() => {
   const path = route.fullPath.replace(/^#/, '')
-  return microApps.find(
-    (a) => path === a.baseroute || path === a.baseroute + '/' || path.startsWith(a.baseroute + '/'),
-  )?.name
+  // dashboard-app baseroute 为 '/dashboard'，但数据总览路径为 '/' 也属于该应用
+  const dash = microApps.find((a) => a.appKey === 'dashboard')
+  if (dash) {
+    const others = microApps.filter((a) => a.appKey !== 'dashboard')
+    const belongsToOther = others.some(
+      (a) => path === a.baseroute || path === a.baseroute + '/' || path.startsWith(a.baseroute + '/'),
+    )
+    // 根路径 '/' 或 '/dashboard' 开头且不属于其他子应用 → dashboard
+    if (!belongsToOther && (path === '/' || path === '' || path.startsWith('/dashboard'))) {
+      return dash.name
+    }
+  }
+  return microApps
+    .filter((a) => a.appKey !== 'dashboard')
+    .find(
+      (a) => path === a.baseroute || path === a.baseroute + '/' || path.startsWith(a.baseroute + '/'),
+    )?.name
 })
 
 /** 从基座路由提取某子应用的子路径（去掉 baseroute 前缀） */
 function getSubPath(app: MicroAppItem): string {
   const path = route.fullPath.replace(/^#/, '')
+  // dashboard-app：根路径 '/' → 子应用 '/'（数据总览）；
+  // '/dashboard/xxx' → 子应用 '/dashboard/xxx'（子应用路由也带 /dashboard 前缀）
+  if (app.appKey === 'dashboard') {
+    if (path === '/' || path === '') return '/'
+    // baseroute '/dashboard'，子路径保留 '/dashboard/xxx'
+    return path
+  }
   if (path === app.baseroute || path === app.baseroute + '/') return '/'
   const sub = path.startsWith(app.baseroute + '/') ? path.slice(app.baseroute.length) : '/'
   return sub || '/'
 }
 
-/** 仅向当前激活的子应用同步子路由，避免打扰隐藏（已缓存）的应用 */
+/** 已挂载（iframe 渲染完成）的子应用集合，用于避免子应用未就绪时调用 router.push */
+const mountedApps = reactive(new Set<string>())
+
+/** 仅向当前激活且已渲染的子应用同步子路由，避免打扰隐藏（已缓存）的应用 */
 function syncSubRoute() {
   const name = activeAppName.value
   if (!name) return
   const app = microApps.find((a) => a.name === name)
   if (!app) return
+  // 子应用未渲染就绪（首次进入）时调用 microApp.router.push 会报「导航失败」，
+  // 跳过等待 @mounted 后再补同步（见 onAppMounted）
+  if (!mountedApps.has(name)) return
   try {
     microApp.router.push({ name, path: getSubPath(app) })
   } catch {
-    // 子应用尚未就绪时忽略，onMounted / 后续 watch 重试
+    // 极小概率仍未就绪时忽略，@mounted / 后续 watch 重试
   }
+}
+
+/** 子应用 iframe 渲染完成后记录并补同步，确保首次进入深层子路由也能落在正确页面 */
+function onAppMounted(name: string) {
+  mountedApps.add(name)
+  if (name === activeAppName.value) syncSubRoute()
 }
 
 onMounted(syncSubRoute)
@@ -60,6 +95,13 @@ function onDataChange(e: CustomEvent) {
     case MicroMsgType.RefreshUser:
       microApp.setGlobalData({ token: userStore.token, userInfo: userStore.userInfo })
       break
+    case MicroMsgType.Navigate: {
+      // 子应用请求跨应用跳转：切换到基座对应完整路由（baseroute + 子路径）
+      const appKey = data.appKey as AppKey
+      const subPath = typeof data.path === 'string' ? data.path : '/'
+      if (appKey) router.push(resolveAppRoute(appKey, subPath))
+      break
+    }
     default:
       break
   }
@@ -79,6 +121,7 @@ function onDataChange(e: CustomEvent) {
       iframe
       v-show="app.name === activeAppName"
       @datachange="onDataChange"
+      @mounted="onAppMounted(app.name)"
     />
     <el-empty v-if="!activeAppName" description="未找到子应用配置" />
   </div>

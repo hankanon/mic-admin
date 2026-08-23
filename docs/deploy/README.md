@@ -44,6 +44,6 @@ Vite 的 `VITE_*` 在 `vite build` 时**写死进产物**，运行时改 `.env` 
 ### 4. micro-app 版本与构建脚本约束
 
 - `@micro-zoe/micro-app` 锁 `1.0.0-rc.32`，勿改 `^1.0.0`。
-- `build` 脚本必须保持 `vue-tsc --noEmit && vite build`，勿改 `vue-tsc -b`。
+- `build` 脚本为 `vue-tsc --noEmit && vite build`（类型检查 + 打包）。TypeScript 固定 `5.9.2` 以兼容 `vue-tsc@3.3.8`，勿改 `vue-tsc -b`。
 
 下一步：根据团队基础设施选择对应指南。

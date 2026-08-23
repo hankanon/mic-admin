@@ -1,0 +1,87 @@
+/* 操作指引（driver.js）自定义样式。
+   注意：driver.js 的遮罩 / 高亮 / 提示框均 teleport 到 body，
+   故此处使用全局选择器，不写进 scoped。仅通过 .mic-guide-active 作用域限制。 */
+
+.mic-guide-active .driver-popover {
+  background: var(--mic-header-bg, #fff);
+  color: var(--mic-text, #303133);
+  border: 1px solid var(--mic-border, #ebeef5);
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  max-width: min(360px, 92vw); /* 响应式：窄屏不超出可视区域 */
+  font-size: 13px;
+}
+
+.mic-guide-active .driver-popover-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--mic-text, #303133);
+}
+
+.mic-guide-active .driver-popover-description {
+  color: var(--mic-text, #606266);
+  line-height: 1.7;
+  /* 支持 features 列表的换行 */
+  white-space: pre-line;
+}
+
+/* 进度文字与箭头 */
+.mic-guide-active .driver-popover-progress-text {
+  color: var(--el-text-color-secondary, #909399);
+  font-size: 12px;
+}
+
+.mic-guide-active .driver-popover-arrow {
+  border-color: var(--mic-header-bg, #fff);
+}
+
+/* 高亮聚焦区域的彩色光环（driver 用 .driver-stage 覆盖在目标元素上） */
+.mic-guide-active .driver-stage {
+  box-shadow: 0 0 0 3px var(--mic-guide-highlight, var(--el-color-primary));
+  border-radius: var(--mic-guide-radius, 8px);
+  transition: box-shadow 0.3s ease;
+}
+
+/* 提示框按钮统一样式（下一步 / 上一步 / 跳过） */
+.mic-guide-active .driver-popover-footer button {
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  background: var(--mic-header-bg, #fff);
+  color: var(--mic-text, #606266);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mic-guide-active .driver-popover-footer button:hover {
+  border-color: var(--el-color-primary, #409eff);
+  color: var(--el-color-primary, #409eff);
+}
+
+/* 「下一步 / 完成」主按钮 */
+.mic-guide-active .driver-popover-footer .driver-popover-next-btn {
+  background: var(--el-color-primary, #409eff);
+  border-color: var(--el-color-primary, #409eff);
+  color: #fff;
+}
+.mic-guide-active .driver-popover-footer .driver-popover-next-btn:hover {
+  background: var(--el-color-primary-light-3, #66b1ff);
+  border-color: var(--el-color-primary-light-3, #66b1ff);
+  color: #fff;
+}
+
+/* 中文「跳过」按钮：置于最左，弱化样式 */
+.mic-guide-active .driver-popover-skip-btn {
+  margin-right: auto;
+  border: none !important;
+  background: transparent !important;
+  color: var(--el-text-color-secondary, #909399) !important;
+}
+.mic-guide-active .driver-popover-skip-btn:hover {
+  color: var(--el-color-primary, #409eff) !important;
+}
+
+/* 暗黑模式下细节微调 */
+html.dark .mic-guide-active .driver-popover {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+}

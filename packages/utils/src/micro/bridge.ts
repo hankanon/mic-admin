@@ -1,5 +1,6 @@
 import mitt from 'mitt'
 import { isMicroEnv } from './env'
+import { APP_BASEROUTES, MicroMsgType, type AppKey } from '../constants'
 
 type Events = {
   'mic:global': Record<string, any>
@@ -65,3 +66,37 @@ export function onGlobalData(handler: (data: Record<string, any>) => void): () =
 }
 
 export { localBus }
+
+/** 跳转请求自增计数：确保每次 dispatch 的数据唯一 */
+let navigateSeq = 0
+
+/**
+ * 跨子应用跳转（公共方法，供各子应用使用）。
+ *
+ * @param appKey 目标子应用 key（dashboard / doc / profile / qa / sys）
+ * @param path   目标应用内的路由路径（如 '/list'，不含 baseroute 前缀）
+ *
+ * 集成运行：向基座 dispatch Navigate 消息，基座切换到对应完整路由（baseroute + path）。
+ * 独立运行：无法跨应用跳转（单应用环境），仅打印警告，调用方需自行降级处理。
+ *
+ * 注意：micro-app 的 datachange 仅在数据变化时触发，重复 dispatch 相同数据不会再次触发。
+ * 因此每次请求附加自增 seq 保证数据唯一，确保「跳转→返回→再次跳转」能重复触发。
+ */
+export function navigateToApp(appKey: AppKey, path: string): void {
+  const subPath = path.startsWith('/') ? path : `/${path}`
+  if (isMicroEnv()) {
+    emitToMain({ type: MicroMsgType.Navigate, appKey, path: subPath, seq: ++navigateSeq })
+  } else {
+    // 独立运行时无基座，无法跨应用跳转；给出提示便于调试
+    console.warn(
+      `[navigateToApp] 独立运行环境不支持跨应用跳转：${appKey} ${subPath}（baseroute ${APP_BASEROUTES[appKey]}）`,
+    )
+  }
+}
+
+/** 计算目标应用在基座的完整路由路径（baseroute + 子路径），供基座或需要完整路径的场景使用 */
+export function resolveAppRoute(appKey: AppKey, path: string): string {
+  const base = APP_BASEROUTES[appKey]
+  const sub = path.startsWith('/') ? path : `/${path}`
+  return sub === '/' ? base : `${base}${sub}`
+}

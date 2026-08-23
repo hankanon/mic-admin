@@ -1,6 +1,6 @@
 import { hasAppPermission } from '@mic/utils'
 
-export type AppKey = 'doc' | 'sys'
+export type AppKey = 'dashboard' | 'doc' | 'profile' | 'qa' | 'sys'
 
 export interface MenuItem {
   key: string
@@ -13,15 +13,63 @@ export interface MenuItem {
 }
 
 export const menuConfig: MenuItem[] = [
-  { key: 'home', title: '首页', icon: 'HomeFilled', path: '/' },
+  {
+    key: 'dashboard',
+    title: '首页大盘',
+    icon: 'HomeFilled',
+    appKey: 'dashboard',
+    children: [
+      { key: 'dashboard-overview', title: '数据总览', path: '/' },
+      { key: 'dashboard-analytics', title: '访问分析', path: '/dashboard/analytics' },
+      { key: 'dashboard-docs', title: '文档统计', path: '/dashboard/docs-stat' },
+      { key: 'dashboard-users', title: '用户统计', path: '/dashboard/users-stat' },
+      { key: 'dashboard-notice', title: '系统公告', path: '/dashboard/notice' },
+    ],
+  },
   {
     key: 'doc',
-    title: '文档发布',
+    title: '文档管理',
     icon: 'Document',
     appKey: 'doc',
+      children: [
+        { key: 'doc-list', title: '文档列表', path: '/doc/list' },
+        { key: 'doc-publish', title: '发布管理', path: '/doc/publish' },
+        { key: 'doc-edit', title: '新增文档', path: '/doc/edit' },
+        { key: 'doc-preview', title: '文档预览', path: '/doc/preview' },
+        {
+          key: 'doc-demo',
+          title: '示例展示',
+          path: '/doc/protable',
+          children: [
+            { key: 'doc-demo-index', title: '示例总览', path: '/doc/protable' },
+            { key: 'doc-demo-multi-header', title: '多表头示例', path: '/doc/protable/multi-header' },
+            { key: 'doc-demo-slot', title: '自定义插槽示例', path: '/doc/protable/slot' },
+            { key: 'doc-demo-single', title: '单选模式示例', path: '/doc/protable/single' },
+            { key: 'doc-demo-multi', title: '多选模式示例', path: '/doc/protable/multi' },
+            { key: 'doc-demo-span', title: '单元格合并示例', path: '/doc/protable/span' },
+          ],
+        },
+      ],
+  },
+  {
+    key: 'qa',
+    title: '智能问答',
+    icon: 'ChatDotRound',
+    appKey: 'qa',
     children: [
-      { key: 'doc-list', title: '文档列表', path: '/doc/list' },
-      { key: 'doc-publish', title: '发布管理', path: '/doc/publish' },
+      { key: 'qa-new', title: '新建会话', path: '/qa/new' },
+      { key: 'qa-history', title: '历史会话', path: '/qa/history' },
+      { key: 'qa-config', title: '模型配置', path: '/qa/config' },
+    ],
+  },
+  {
+    key: 'profile',
+    title: '个人中心',
+    icon: 'User',
+    appKey: 'profile',
+    children: [
+      { key: 'profile-view', title: '个人视图', path: '/profile/view' },
+      { key: 'profile-todo', title: '待办事项', path: '/profile/todo' },
     ],
   },
   {
@@ -43,9 +91,9 @@ export function getMenusByApp(appKey?: AppKey): MenuItem[] {
   return menuConfig.filter((m) => !m.appKey || m.appKey === appKey)
 }
 
-/** 去掉子应用前缀：/doc/list → /list，/ 保持不变 */
+/** 去掉子应用前缀：/doc/list → /list，/dashboard/analytics → /analytics，/profile/view → /view，/qa/new → /new，/ 保持不变 */
 export function stripAppPrefix(path: string): string {
-  const matched = path.match(/^\/(doc|sys)(\/.*)?$/)
+  const matched = path.match(/^\/(dashboard|doc|profile|qa|sys)(\/.*)?$/)
   if (matched) return matched[2] || '/'
   return path
 }
@@ -75,14 +123,15 @@ export function matchMenuKey(menus: MenuItem[], fullPath: string): string {
 }
 
 /**
- * 按权限过滤菜单：无应用归属的项（如首页）始终保留；
+ * 按权限过滤菜单：无应用归属的项始终保留；首页大盘（dashboard）、个人中心（profile）、智能问答（qa）作为公共入口始终保留；
  * 无应用访问权限的顶级分组（及其全部子项）将被移除。
  */
 export function filterMenusByPermissions(
   menus: MenuItem[],
   permissions: string[] | undefined,
 ): MenuItem[] {
+  const publicApps = ['dashboard', 'profile', 'qa']
   return menus
-    .filter((m) => (m.appKey ? hasAppPermission(permissions, m.appKey) : true))
+    .filter((m) => (!m.appKey || publicApps.includes(m.appKey)) ? true : hasAppPermission(permissions, m.appKey))
     .map((m) => ({ ...m, children: m.children ? m.children.map((c) => ({ ...c })) : undefined }))
 }

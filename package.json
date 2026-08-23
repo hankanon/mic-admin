@@ -7,6 +7,9 @@
     "dev:main": "pnpm --filter @mic/main-app dev",
     "dev:doc": "pnpm --filter @mic/doc-app dev",
     "dev:sys": "pnpm --filter @mic/sys-app dev",
+    "dev:dashboard": "pnpm --filter @mic/dashboard-app dev",
+    "dev:profile": "pnpm --filter @mic/profile-app dev",
+    "dev:qa": "pnpm --filter @mic/qa-app dev",
     "dev:sys-server": "pnpm --filter @mic/sys-server dev",
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
@@ -17,24 +20,15 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "typescript": "^5.7.0",
-    "vite": "^6.0.0",
-    "vue": "^3.5.0",
-    "vue-router": "^4.5.0",
-    "pinia": "^2.3.0",
-    "element-plus": "^2.9.0",
-    "axios": "^1.7.0",
-    "@vitejs/plugin-vue": "^5.2.0",
-    "vue-tsc": "^2.2.0",
+    "typescript": "5.9.2",
+    "vite": "8.1.5",
+    "vue": "3.5.40",
+    "vue-router": "5.2.0",
+    "pinia": "4.0.2",
+    "element-plus": "2.14.3",
+    "axios": "1.18.1",
+    "@vitejs/plugin-vue": "6.0.8",
+    "vue-tsc": "3.3.8",
     "mitt": "^3.0.1"
-  },
-  "pnpm": {
-    "overrides": {
-      "vue": "^3.5.0",
-      "vue-router": "^4.5.0",
-      "pinia": "^2.3.0",
-      "element-plus": "^2.9.0",
-      "axios": "^1.7.0"
-    }
   }
 }

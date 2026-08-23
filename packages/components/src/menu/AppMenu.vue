@@ -79,6 +79,7 @@ const defaultActive = computed(() => props.activeMenu)
           v-for="child in item.children"
           :key="child.key"
           :index="child.key"
+          :data-menu-key="child.key"
           @click="handleSelect(child)"
         >
           <el-icon v-if="child.icon"><component :is="resolveIcon(child.icon)" /></el-icon>
@@ -87,7 +88,7 @@ const defaultActive = computed(() => props.activeMenu)
       </el-sub-menu>
 
       <!-- 普通菜单项 -->
-      <el-menu-item v-else :index="item.key" @click="handleSelect(item)">
+      <el-menu-item v-else :index="item.key" :data-menu-key="item.key" @click="handleSelect(item)">
         <el-icon v-if="item.icon"><component :is="resolveIcon(item.icon)" /></el-icon>
         <template #title>{{ item.title }}</template>
       </el-menu-item>
