@@ -30,3 +30,4 @@ export {
 
 export { useGuide, type GuideOptions } from './guide/useGuide'
 export { defaultGuideSteps, type GuideStep } from './guide/steps'
+export { default as NotificationBell } from './notification/NotificationBell.vue'

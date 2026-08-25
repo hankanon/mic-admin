@@ -1,7 +1,8 @@
-import { createApp } from './app'
+import { createHttpServer } from './app'
 
 const PORT = Number(process.env.PORT || 4000)
 
-createApp().listen(PORT, () => {
+const { server } = createHttpServer()
+server.listen(PORT, () => {
   console.log(`[sys-server] listening on http://localhost:${PORT}`)
 })

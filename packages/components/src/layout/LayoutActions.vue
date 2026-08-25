@@ -2,7 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import { emitToMain, MicroMsgType, useTheme } from '@mic/utils'
+import { emitToMain, MicroMsgType, useTheme, type NotificationMessage, type NotificationPrefs, type ConnectionStatus } from '@mic/utils'
+import NotificationBell from '../notification/NotificationBell.vue'
 import { useGuide } from '../guide/useGuide'
 
 const props = withDefaults(
@@ -13,13 +14,32 @@ const props = withDefaults(
     onBeforeGuide?: () => void
     /** host: 主应用（登出走 emit）；standalone: 子应用独立运行（自行跳登录） */
     mode?: 'host' | 'standalone'
+    /** 通知中心数据（由基座注入，子应用 standalone 可不传） */
+    notifications?: NotificationMessage[]
+    notificationUnread?: number
+    notificationStatus?: ConnectionStatus
+    notificationPrefs?: NotificationPrefs
+    /** 可订阅模块（用于过滤偏好） */
+    notificationModules?: { key: string; label: string }[]
   }>(),
-  { mode: 'host' },
+  {
+    mode: 'host',
+    notifications: () => [],
+    notificationUnread: 0,
+    notificationStatus: 'disconnected',
+    notificationPrefs: () => ({ mutedTypes: [], mutedModules: [], soundEnabled: true }),
+    notificationModules: () => [],
+  },
 )
 
 const emit = defineEmits<{
   (e: 'logout'): void
   (e: 'switch-account', username: string): void
+  (e: 'update:notification-prefs', prefs: NotificationPrefs): void
+  (e: 'notification-mark-read', id: string): void
+  (e: 'notification-mark-all'): void
+  (e: 'notification-clear'): void
+  (e: 'notification-select', msg: NotificationMessage): void
 }>()
 
 /** 触发区显示名：优先用登录账号 id 首字母大写，回退到 name */
@@ -184,6 +204,20 @@ function onLogout() {
         <el-icon><component :is="resolveIcon(isFullscreen ? 'Aim' : 'FullScreen')" /></el-icon>
       </el-button>
     </el-tooltip>
+    <!-- 消息通知：铃铛图标，位于登录用户名左侧 -->
+    <NotificationBell
+      v-if="notifications"
+      :messages="notifications"
+      :unread-count="notificationUnread"
+      :connection-status="notificationStatus"
+      :prefs="notificationPrefs"
+      :modules="notificationModules"
+      @update:prefs="(p) => emit('update:notification-prefs', p)"
+      @mark-read="(id) => emit('notification-mark-read', id)"
+      @mark-all="emit('notification-mark-all')"
+      @clear="emit('notification-clear')"
+      @select="(m) => emit('notification-select', m)"
+    />
     <el-popover
       ref="userMenuRef"
       trigger="hover"

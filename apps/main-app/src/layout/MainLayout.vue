@@ -16,15 +16,28 @@ import {
 import { SWITCHABLE_ACCOUNTS, hasAppPermission } from '@mic/utils'
 import { useUserStore } from '../store/user'
 import { useTabsStore } from '../store/tabs'
+import { useNotificationStore } from '../store/notification'
 import TabsView from '../components/TabsView.vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const tabsStore = useTabsStore()
+const notificationStore = useNotificationStore()
 
 const permissions = computed(() => userStore.userInfo?.permissions ?? [])
 const menus = computed(() => filterMenusByPermissions(menuConfig, permissions.value))
+
+// 通知中心：基座登录后建立到 sys-server 的 WebSocket 连接
+const notificationModules = [
+  { key: 'dashboard', label: '首页大盘' },
+  { key: 'doc', label: '文档管理' },
+  { key: 'sys', label: '系统管理' },
+  { key: 'profile', label: '个人中心' },
+  { key: 'qa', label: '智能问答' },
+]
+const currentUserId = computed(() => userStore.userInfo?.id as string | undefined)
+notificationStore.init(currentUserId.value)
 
 const iconComponents = ElementPlusIconsVue as Record<string, any>
 function resolveIcon(name?: string) {
@@ -112,6 +125,7 @@ watch(() => route.fullPath, syncTabs, { immediate: true })
 function handleLogout() {
   userStore.logout()
   tabsStore.reset()
+  notificationStore.destroy()
   microApp.setGlobalData({ token: '', userInfo: null })
   router.push('/login')
 }
@@ -119,6 +133,8 @@ function handleLogout() {
 /** 切换角色：更新用户态、重新下发全局数据，并校正当前路由到权限范围内 */
 function handleSwitchAccount(username: string) {
   userStore.switchAccount(username)
+  // 通知中心：以新账号重连 WebSocket（定向接收该用户的提醒/告警）
+  notificationStore.reconnect(userStore.userInfo?.id as string | undefined)
   const perms = userStore.userInfo?.permissions ?? []
   microApp.setGlobalData({
     token: userStore.token,
@@ -131,6 +147,13 @@ function handleSwitchAccount(username: string) {
     router.push(first ? `/${first}` : '/')
     tabsStore.reset()
     syncTabs()
+  }
+}
+
+/** 点击通知项：若携带业务链接则跳转（基座直接 router.push，子应用通过 MicroMsgType 转发） */
+function handleNotificationSelect(msg: { link?: string }) {
+  if (msg.link) {
+    router.push(msg.link)
   }
 }
 </script>
@@ -198,8 +221,18 @@ function handleSwitchAccount(username: string) {
           :accounts="accounts"
           mode="host"
           :on-before-guide="() => { if (collapsed) collapsed = false }"
+          :notifications="notificationStore.messages"
+          :notification-unread="notificationStore.unreadCount"
+          :notification-status="notificationStore.connectionStatus"
+          :notification-prefs="notificationStore.prefs"
+          :notification-modules="notificationModules"
           @logout="handleLogout"
           @switch-account="handleSwitchAccount"
+          @update:notification-prefs="(p) => notificationStore.updatePrefs(p)"
+          @notification-mark-read="(id) => notificationStore.markRead(id)"
+          @notification-mark-all="notificationStore.markAllRead"
+          @notification-clear="notificationStore.clearAll"
+          @notification-select="handleNotificationSelect"
         />
       </header>
 
