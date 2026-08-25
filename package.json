@@ -10,7 +10,7 @@
     "dev:dashboard": "pnpm --filter @mic/dashboard-app dev",
     "dev:profile": "pnpm --filter @mic/profile-app dev",
     "dev:qa": "pnpm --filter @mic/qa-app dev",
-    "dev:sys-server": "pnpm --filter @mic/sys-server dev",
+    "dev:sys-server": "pnpm --filter @mic/server dev",
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "build:main": "pnpm --filter @mic/main-app build",

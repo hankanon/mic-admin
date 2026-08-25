@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  - 'server'
 
 # pnpm 9 起 overrides 必须放在 workspace 配置中（不再读取 package.json 的 pnpm 字段）
 overrides:

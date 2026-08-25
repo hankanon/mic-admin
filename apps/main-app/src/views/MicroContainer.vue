@@ -58,6 +58,18 @@ function getSubPath(app: MicroAppItem): string {
 /** 已挂载（iframe 渲染完成）的子应用集合，用于避免子应用未就绪时调用 router.push */
 const mountedApps = reactive(new Set<string>())
 
+/**
+ * 已首次进入过的子应用集合：实现「按需懒加载 + 应用级缓存」。
+ * - 仅当「当前激活」或「已加载过」才渲染 <micro-app>（未进入过的根本不挂载 → 懒加载）；
+ * - 一旦进入并 mounted，即记入该集合并永不移除 → 后续切走再回来不重新 mount（缓存保持）。
+ */
+const loadedApps = reactive(new Set<string>())
+
+/** 需要渲染的子应用列表：当前激活的 + 历史已进入过的（缓存），其余不挂载 */
+const renderApps = computed<MicroAppItem[]>(() =>
+  microApps.filter((app) => app.name === activeAppName.value || loadedApps.has(app.name)),
+)
+
 /** 仅向当前激活且已渲染的子应用同步子路由，避免打扰隐藏（已缓存）的应用 */
 function syncSubRoute() {
   const name = activeAppName.value
@@ -77,6 +89,8 @@ function syncSubRoute() {
 /** 子应用 iframe 渲染完成后记录并补同步，确保首次进入深层子路由也能落在正确页面 */
 function onAppMounted(name: string) {
   mountedApps.add(name)
+  // 首次进入即标记为已加载，之后即使切走也保持挂载（应用级缓存）
+  loadedApps.add(name)
   if (name === activeAppName.value) syncSubRoute()
 }
 
@@ -110,9 +124,10 @@ function onDataChange(e: CustomEvent) {
 
 <template>
   <div class="micro-container">
-    <!-- 同时挂载全部子应用，仅用 v-show 切换显隐，实现应用级缓存（切走不卸载） -->
+    <!-- 按需懒加载：仅渲染「当前激活」或「已进入过（缓存）」的子应用；
+         未进入过的子应用不挂载。已加载的用 v-show 控制显隐，切走不卸载（应用级缓存） -->
     <micro-app
-      v-for="app in microApps"
+      v-for="app in renderApps"
       :key="app.name"
       :name="app.name"
       :url="app.url"

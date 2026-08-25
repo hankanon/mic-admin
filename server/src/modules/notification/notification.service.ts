@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common'
 import type { WebSocket } from 'ws'
 import { randomUUID } from 'node:crypto'
 import type {
@@ -5,7 +6,7 @@ import type {
   NotificationMessage,
   NotificationType,
   ServerEnvelope,
-} from './types'
+} from './notification.types'
 
 /** 单客户端连接记录 */
 interface ClientConnection {
@@ -40,6 +41,7 @@ interface RetryItem {
  * 3. 维护「已发送未确认」队列，客户端 ack 后清除；超时重投（指数退避，最多 3 次）。
  * 4. 客户端离线时，alert 类消息进入离线缓冲，重连后补发（避免实时告警丢失）。
  */
+@Injectable()
 export class NotificationService {
   private clients = new Map<string, ClientConnection>()
   /** userId -> 该用户全部连接 id（支持多端） */
@@ -226,11 +228,8 @@ export class NotificationService {
     return this.publish(scoped)
   }
 
-  /** 提供历史给新连接 */
+  /** 提供历史给新连接 / REST 查询 */
   getHistory(): NotificationMessage[] {
     return this.history
   }
 }
-
-/** 单例：供 app / routes 共用 */
-export const notificationService = new NotificationService()
