@@ -1,0 +1,15 @@
+/* 让根级高度从 html/body/#app 贯通，使内部 height:100% 的视图（如文档预览）
+   在「独立运行」与「基座 iframe 集成」两种形态下都能形成高度闭环，
+   从而让分页/缩放工具栏固定、PDF 内容区独立滚动。 */
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}

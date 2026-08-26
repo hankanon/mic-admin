@@ -35,8 +35,8 @@ export class RoleController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    this.roleService.remove(Number(id))
+  async remove(@Param('id') id: string) {
+    await this.roleService.remove(Number(id))
     return null
   }
 }

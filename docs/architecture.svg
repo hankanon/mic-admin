@@ -1,0 +1,101 @@
+<svg viewBox="0 0 680 600" width="100%" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>微前端后台管理系统最新架构图（实际代码）</title>
+  <desc>pnpm workspace monorepo：基座 main-app 以 micro-app iframe 加载 5 个子应用（dashboard/doc/sys/profile/qa），子应用双形态运行，公共包 components/utils 源码直连，系统后端 server（NestJS）经 request 提供数据</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <!-- 外层 monorepo -->
+  <rect x="40" y="20" width="600" height="544" rx="20" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
+  <text class="th" x="62" y="44">mic-admin（pnpm workspace monorepo）</text>
+
+  <!-- 基座 main-app -->
+  <rect x="60" y="56" width="560" height="140" rx="12" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+  <text class="th" x="78" y="80">main-app 主应用（基座，端口 3000）</text>
+  <text class="ts" x="78" y="98">登录鉴权 · 整体布局 · 加载子应用 · 全局数据下发</text>
+  <rect x="78" y="110" width="300" height="46" rx="8" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.5"/>
+  <text class="t" x="228" y="129" text-anchor="middle" dominant-baseline="central">BasicLayout</text>
+  <text class="ts" x="228" y="146" text-anchor="middle" dominant-baseline="central">TopNavMenu + AppMenu + LayoutActions + TabsView</text>
+  <rect x="390" y="110" width="210" height="46" rx="8" fill="#B5D4F4" stroke="#185FA5" stroke-width="0.5"/>
+  <text class="t" x="495" y="129" text-anchor="middle" dominant-baseline="central">MicroContainer</text>
+  <text class="ts" x="495" y="146" text-anchor="middle" dominant-baseline="central">v-show 同挂 5 子应用（应用级缓存）</text>
+
+  <!-- 基座加载子应用 -->
+  <path d="M340 196 L340 210" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M104 210 L576 210" fill="none" stroke="#185FA5" stroke-width="1" stroke-dasharray="4 3"/>
+  <path d="M104 210 L104 238" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M222 210 L222 238" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M340 210 L340 238" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M458 210 L458 238" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M576 210 L576 238" fill="none" stroke="#185FA5" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text class="ts" x="346" y="204">加载 &lt;micro-app iframe&gt;</text>
+
+  <!-- 5 个子应用 -->
+  <rect x="50" y="240" width="108" height="118" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text class="th" x="104" y="262" text-anchor="middle" dominant-baseline="central">dashboard-app</text>
+  <text class="ts" x="104" y="284" text-anchor="middle" dominant-baseline="central">首页大盘</text>
+  <text class="ts" x="104" y="304" text-anchor="middle" dominant-baseline="central">/dashboard :3002</text>
+  <text class="ts" x="104" y="332" text-anchor="middle" dominant-baseline="central">双形态运行</text>
+
+  <rect x="168" y="240" width="108" height="118" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text class="th" x="222" y="262" text-anchor="middle" dominant-baseline="central">doc-app</text>
+  <text class="ts" x="222" y="284" text-anchor="middle" dominant-baseline="central">文档管理</text>
+  <text class="ts" x="222" y="304" text-anchor="middle" dominant-baseline="central">/doc :3001</text>
+  <text class="ts" x="222" y="332" text-anchor="middle" dominant-baseline="central">双形态运行</text>
+
+  <rect x="286" y="240" width="108" height="118" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text class="th" x="340" y="262" text-anchor="middle" dominant-baseline="central">sys-app</text>
+  <text class="ts" x="340" y="284" text-anchor="middle" dominant-baseline="central">系统管理</text>
+  <text class="ts" x="340" y="304" text-anchor="middle" dominant-baseline="central">/sys :3003</text>
+  <text class="ts" x="340" y="332" text-anchor="middle" dominant-baseline="central">双形态运行</text>
+
+  <rect x="404" y="240" width="108" height="118" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text class="th" x="458" y="262" text-anchor="middle" dominant-baseline="central">profile-app</text>
+  <text class="ts" x="458" y="284" text-anchor="middle" dominant-baseline="central">个人中心</text>
+  <text class="ts" x="458" y="304" text-anchor="middle" dominant-baseline="central">/profile :3004</text>
+  <text class="ts" x="458" y="332" text-anchor="middle" dominant-baseline="central">双形态运行</text>
+
+  <rect x="522" y="240" width="108" height="118" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+  <text class="th" x="576" y="262" text-anchor="middle" dominant-baseline="central">qa-app</text>
+  <text class="ts" x="576" y="284" text-anchor="middle" dominant-baseline="central">智能问答</text>
+  <text class="ts" x="576" y="304" text-anchor="middle" dominant-baseline="central">/qa :3005</text>
+  <text class="ts" x="576" y="332" text-anchor="middle" dominant-baseline="central">双形态运行</text>
+
+  <!-- 依赖/后端 汇聚线 -->
+  <path d="M104 358 L104 384" fill="none" stroke="#534AB7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <path d="M222 358 L222 384" fill="none" stroke="#534AB7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <path d="M340 358 L340 384" fill="none" stroke="#534AB7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <path d="M458 358 L458 384" fill="none" stroke="#534AB7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <path d="M576 358 L576 384" fill="none" stroke="#534AB7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <path d="M50 384 L630 384" fill="none" stroke="#534AB7" stroke-width="0.5" stroke-dasharray="4 3"/>
+  <path d="M140 384 L140 402" fill="none" stroke="#534AB7" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M340 384 L340 402" fill="none" stroke="#534AB7" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M540 384 L540 402" fill="none" stroke="#534AB7" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text class="ts" x="340" y="378" text-anchor="middle">workspace 依赖（源码直连）/ API 调用</text>
+
+  <!-- 公共包 + 后端 -->
+  <rect x="50" y="404" width="180" height="118" rx="12" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text class="th" x="140" y="426" text-anchor="middle" dominant-baseline="central">@mic/components</text>
+  <text class="ts" x="140" y="448" text-anchor="middle" dominant-baseline="central">BasicLayout / AppMenu</text>
+  <text class="ts" x="140" y="468" text-anchor="middle" dominant-baseline="central">TopNavMenu / LayoutActions</text>
+  <text class="ts" x="140" y="488" text-anchor="middle" dominant-baseline="central">LoginPage / menuConfig</text>
+  <text class="ts" x="140" y="508" text-anchor="middle" dominant-baseline="central">UserAvatar / PageCard</text>
+
+  <rect x="250" y="404" width="180" height="118" rx="12" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
+  <text class="th" x="340" y="426" text-anchor="middle" dominant-baseline="central">@mic/utils</text>
+  <text class="ts" x="340" y="448" text-anchor="middle" dominant-baseline="central">request / auth / storage</text>
+  <text class="ts" x="340" y="468" text-anchor="middle" dominant-baseline="central">micro 通信桥 / isMicroEnv</text>
+  <text class="ts" x="340" y="488" text-anchor="middle" dominant-baseline="central">permission / theme</text>
+  <text class="ts" x="340" y="508" text-anchor="middle" dominant-baseline="central">helpers / constants</text>
+
+  <rect x="450" y="404" width="180" height="118" rx="12" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
+  <text class="th" x="540" y="426" text-anchor="middle" dominant-baseline="central">@mic/server</text>
+  <text class="ts" x="540" y="448" text-anchor="middle" dominant-baseline="central">NestJS 后端服务</text>
+  <text class="ts" x="540" y="468" text-anchor="middle" dominant-baseline="central">端口 4000</text>
+  <text class="ts" x="540" y="488" text-anchor="middle" dominant-baseline="central">系统管理(sys-app) 数据</text>
+  <text class="ts" x="540" y="508" text-anchor="middle" dominant-baseline="central">经 request 提供 API</text>
+
+  <text class="ts" x="340" y="548" text-anchor="middle">子应用均双形态：集成时只渲染业务页；独立运行时基于 isMicroEnv() 自套 BasicLayout</text>
+</svg>

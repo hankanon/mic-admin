@@ -41,8 +41,8 @@ export class MenuController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    this.menuService.remove(Number(id))
+  async remove(@Param('id') id: string) {
+    await this.menuService.remove(Number(id))
     return null
   }
 }

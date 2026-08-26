@@ -11,6 +11,7 @@
     "dev:profile": "pnpm --filter @mic/profile-app dev",
     "dev:qa": "pnpm --filter @mic/qa-app dev",
     "dev:sys-server": "pnpm --filter @mic/server dev",
+    "dev:client": "pnpm --parallel --filter \"@mic/*-app\" dev",
     "dev": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "build:main": "pnpm --filter @mic/main-app build",

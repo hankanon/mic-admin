@@ -1,19 +1,19 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
+import type { Pool } from 'mysql2/promise'
+import type { RowDataPacket, ResultSetHeader } from 'mysql2'
 import { ApiError } from '../../common/errors'
-import { db, nextId } from '../../common/store'
 import type { User } from '../../common/types'
 import type { UserCreateInput, UserUpdateInput } from '../../common/schemas'
 
-function findUser(id: number): User | undefined {
-  return db.users.find((u) => u.id === id)
-}
-
-function assertRolesExist(roleIds: number[]) {
-  for (const rid of roleIds) {
-    if (!db.roles.some((r) => r.id === rid)) {
-      throw new ApiError(`角色 id ${rid} 不存在`, 40400)
-    }
-  }
+interface UserRow extends RowDataPacket {
+  id: number
+  username: string
+  name: string
+  email: string
+  phone: string | null
+  status: string
+  created_at: Date | string
+  updated_at: Date | string
 }
 
 export interface UserView extends User {
@@ -21,69 +21,176 @@ export interface UserView extends User {
   roleNames: string[]
 }
 
-function toView(user: User): UserView {
+function mapUser(r: UserRow): User {
   return {
-    ...user,
-    roleNames: user.roleIds
-      .map((id) => db.roles.find((r) => r.id === id)?.name)
-      .filter((n): n is string => Boolean(n)),
+    id: r.id,
+    username: r.username,
+    name: r.name,
+    email: r.email,
+    phone: r.phone ?? undefined,
+    status: r.status as User['status'],
+    roleIds: [],
+    createdAt: new Date(r.created_at).toISOString(),
+    updatedAt: new Date(r.updated_at).toISOString(),
   }
 }
 
 @Injectable()
 export class UserService {
-  list(): UserView[] {
-    return db.users.map(toView).sort((a, b) => a.id - b.id)
+  constructor(@Inject('MYSQL_POOL') private readonly pool: Pool) {}
+
+  private async findRow(id: number): Promise<UserRow | undefined> {
+    const [rows] = await this.pool.query<UserRow[]>(
+      'SELECT * FROM `users` WHERE `id` = ?',
+      [id],
+    )
+    return rows[0]
   }
 
-  get(id: number): UserView {
-    const user = findUser(id)
-    if (!user) throw new ApiError('人员不存在', 40400)
-    return toView(user)
+  private async loadRoleIds(userId: number): Promise<number[]> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT `role_id` FROM `user_roles` WHERE `user_id` = ?',
+      [userId],
+    )
+    return rows.map((r) => r.role_id as number)
   }
 
-  create(input: UserCreateInput): User {
-    if (db.users.some((u) => u.username === input.username)) {
-      throw new ApiError('用户名已存在', 40000)
-    }
-    if (db.users.some((u) => u.email === input.email)) {
-      throw new ApiError('邮箱已存在', 40000)
-    }
-    assertRolesExist(input.roleIds)
-    const now = new Date().toISOString()
-    const user: User = {
-      id: nextId('user'),
-      username: input.username,
-      name: input.name,
-      email: input.email,
-      phone: input.phone,
-      status: input.status,
-      roleIds: input.roleIds,
-      createdAt: now,
-      updatedAt: now,
-    }
-    db.users.push(user)
-    return user
+  private async loadRoleNames(roleIds: number[]): Promise<string[]> {
+    if (!roleIds.length) return []
+    const placeholders = roleIds.map(() => '?').join(',')
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT `name` FROM `roles` WHERE `id` IN (' + placeholders + ')',
+      roleIds,
+    )
+    return rows.map((r) => r.name as string)
   }
 
-  update(id: number, input: UserUpdateInput): User {
-    const user = findUser(id)
-    if (!user) throw new ApiError('人员不存在', 40000)
-    if (input.username !== undefined && db.users.some((u) => u.username === input.username && u.id !== id)) {
-      throw new ApiError('用户名已存在', 40000)
-    }
-    if (input.email !== undefined && db.users.some((u) => u.email === input.email && u.id !== id)) {
-      throw new ApiError('邮箱已存在', 40000)
-    }
-    if (input.roleIds !== undefined) assertRolesExist(input.roleIds)
-    const now = new Date().toISOString()
-    Object.assign(user, input, { updatedAt: now })
-    return user
+  private async toView(userId: number): Promise<UserView> {
+    const row = await this.findRow(userId)
+    if (!row) throw new ApiError('人员不存在', 40400)
+    const roleIds = await this.loadRoleIds(userId)
+    const roleNames = await this.loadRoleNames(roleIds)
+    return { ...mapUser(row), roleIds, roleNames }
   }
 
-  remove(id: number): void {
-    const user = findUser(id)
-    if (!user) throw new ApiError('人员不存在', 40000)
-    db.users = db.users.filter((u) => u.id !== id)
+  async list(): Promise<UserView[]> {
+    const [rows] = await this.pool.query<UserRow[]>('SELECT * FROM `users` ORDER BY `id`')
+    const result: UserView[] = []
+    for (const r of rows) {
+      const roleIds = await this.loadRoleIds(r.id)
+      const roleNames = await this.loadRoleNames(roleIds)
+      result.push({ ...mapUser(r), roleIds, roleNames })
+    }
+    return result
+  }
+
+  async get(id: number): Promise<UserView> {
+    return this.toView(id)
+  }
+
+  private async assertRolesExist(roleIds: number[]) {
+    if (!roleIds.length) return
+    const placeholders = roleIds.map(() => '?').join(',')
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) AS cnt FROM `roles` WHERE `id` IN (' + placeholders + ')',
+      roleIds,
+    )
+    if (Number(rows[0].cnt) !== roleIds.length) {
+      throw new ApiError('存在不存在的角色 id', 40400)
+    }
+  }
+
+  async create(input: UserCreateInput): Promise<User> {
+    const [dupUser] = await this.pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) AS cnt FROM `users` WHERE `username` = ?',
+      [input.username],
+    )
+    if (Number(dupUser[0].cnt) > 0) throw new ApiError('用户名已存在', 40000)
+    const [dupEmail] = await this.pool.query<RowDataPacket[]>(
+      'SELECT COUNT(*) AS cnt FROM `users` WHERE `email` = ?',
+      [input.email],
+    )
+    if (Number(dupEmail[0].cnt) > 0) throw new ApiError('邮箱已存在', 40000)
+    await this.assertRolesExist(input.roleIds)
+
+    const [result] = await this.pool.query<ResultSetHeader>(
+      'INSERT INTO `users` (`username`, `name`, `email`, `phone`, `status`) VALUES (?, ?, ?, ?, ?)',
+      [input.username, input.name, input.email, input.phone ?? null, input.status],
+    )
+    const userId = result.insertId
+    if (input.roleIds.length) {
+      await this.pool.query(
+        'INSERT INTO `user_roles` (`user_id`, `role_id`) VALUES ' +
+          input.roleIds.map(() => '(?, ?)').join(', '),
+        input.roleIds.flatMap((rid) => [userId, rid]),
+      )
+    }
+    return this.toView(userId)
+  }
+
+  async update(id: number, input: UserUpdateInput): Promise<User> {
+    const row = await this.findRow(id)
+    if (!row) throw new ApiError('人员不存在', 40400)
+    if (input.username !== undefined) {
+      const [dup] = await this.pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) AS cnt FROM `users` WHERE `username` = ? AND `id` <> ?',
+        [input.username, id],
+      )
+      if (Number(dup[0].cnt) > 0) throw new ApiError('用户名已存在', 40000)
+    }
+    if (input.email !== undefined) {
+      const [dup] = await this.pool.query<RowDataPacket[]>(
+        'SELECT COUNT(*) AS cnt FROM `users` WHERE `email` = ? AND `id` <> ?',
+        [input.email, id],
+      )
+      if (Number(dup[0].cnt) > 0) throw new ApiError('邮箱已存在', 40000)
+    }
+
+    const sets: string[] = []
+    const params: unknown[] = []
+    if (input.username !== undefined) {
+      sets.push('`username` = ?')
+      params.push(input.username)
+    }
+    if (input.name !== undefined) {
+      sets.push('`name` = ?')
+      params.push(input.name)
+    }
+    if (input.email !== undefined) {
+      sets.push('`email` = ?')
+      params.push(input.email)
+    }
+    if (input.phone !== undefined) {
+      sets.push('`phone` = ?')
+      params.push(input.phone)
+    }
+    if (input.status !== undefined) {
+      sets.push('`status` = ?')
+      params.push(input.status)
+    }
+    if (sets.length) {
+      await this.pool.query(
+        'UPDATE `users` SET ' + sets.join(', ') + ' WHERE `id` = ?',
+        [...params, id],
+      )
+    }
+    if (input.roleIds !== undefined) {
+      await this.assertRolesExist(input.roleIds)
+      await this.pool.query('DELETE FROM `user_roles` WHERE `user_id` = ?', [id])
+      if (input.roleIds.length) {
+        await this.pool.query(
+          'INSERT INTO `user_roles` (`user_id`, `role_id`) VALUES ' +
+            input.roleIds.map(() => '(?, ?)').join(', '),
+          input.roleIds.flatMap((rid) => [id, rid]),
+        )
+      }
+    }
+    return this.toView(id)
+  }
+
+  async remove(id: number): Promise<void> {
+    const row = await this.findRow(id)
+    if (!row) throw new ApiError('人员不存在', 40400)
+    await this.pool.query('DELETE FROM `users` WHERE `id` = ?', [id])
   }
 }

@@ -5,6 +5,7 @@ import 'element-plus/dist/index.css'
 import 'element-plus/theme-chalk/dark/css-vars.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import '@mic/components/theme'
+import './style.css'
 import { initTheme } from '@mic/utils'
 
 import App from './App.vue'

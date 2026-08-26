@@ -35,6 +35,14 @@ let loadTimer: ReturnType<typeof setTimeout> | null = null
 
 const hasFile = computed(() => source.value !== null)
 
+// 让 PageCard body 占满父级高度，预览区内部再独立滚动
+const cardBodyStyle = {
+  flex: '1',
+  'min-height': '0',
+  display: 'flex',
+  'flex-direction': 'column',
+}
+
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
@@ -214,7 +222,7 @@ onBeforeUnmount(() => {
   <div class="doc-preview">
     <Breadcrumb />
 
-    <PageCard title="文档预览" subtitle="上传 PDF 文档，在线预览、翻页与缩放">
+    <PageCard title="文档预览" subtitle="上传 PDF 文档，在线预览、翻页与缩放" :body-style="cardBodyStyle">
       <template #extra>
         <el-button
           v-if="hasFile"
@@ -322,6 +330,15 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 16px;
   height: 100%;
+  min-height: 0;
+}
+
+/* 让 PageCard 根 el-card 占满父级高度，body 才能 flex 撑开（高度链条贯通） */
+.doc-preview :deep(.page-card) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
 }
 
 .doc-preview__upload {
@@ -354,14 +371,16 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 0;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .doc-preview__meta {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
   font-size: 13px;
   color: var(--el-text-color-secondary);
 }
@@ -380,9 +399,15 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 8px 12px;
+  flex-shrink: 0;
+  padding: 10px 12px;
   background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .doc-preview__page {
@@ -416,5 +441,15 @@ onBeforeUnmount(() => {
   background: var(--el-fill-color-blank);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
+}
+
+@media (max-width: 576px) {
+  .doc-preview__toolbar {
+    gap: 8px;
+    padding: 8px;
+  }
+  .doc-preview__page-input {
+    width: 52px;
+  }
 }
 </style>
