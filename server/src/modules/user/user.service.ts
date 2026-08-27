@@ -114,8 +114,8 @@ export class UserService {
     await this.assertRolesExist(input.roleIds)
 
     const [result] = await this.pool.query<ResultSetHeader>(
-      'INSERT INTO `users` (`username`, `name`, `email`, `phone`, `status`) VALUES (?, ?, ?, ?, ?)',
-      [input.username, input.name, input.email, input.phone ?? null, input.status],
+      'INSERT INTO `users` (`username`, `name`, `email`, `phone`, `status`, `password`) VALUES (?, ?, ?, ?, ?, ?)',
+      [input.username, input.name, input.email, input.phone ?? null, input.status, input.password],
     )
     const userId = result.insertId
     if (input.roleIds.length) {
@@ -167,6 +167,10 @@ export class UserService {
     if (input.status !== undefined) {
       sets.push('`status` = ?')
       params.push(input.status)
+    }
+    if (input.password !== undefined) {
+      sets.push('`password` = ?')
+      params.push(input.password)
     }
     if (sets.length) {
       await this.pool.query(

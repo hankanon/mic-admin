@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Breadcrumb, PageCard } from '@mic/components'
+import { PageCard } from '@mic/components'
 import { MdPreview } from 'md-editor-v3'
 import { DOC_DEFAULT_COVER, useDocStore } from '../store/doc'
 
@@ -35,13 +35,6 @@ function goEdit() {
 
 <template>
   <div class="doc-detail">
-    <Breadcrumb
-      :items="[
-        { title: '文档管理', path: '/list' },
-        { title: doc ? doc.title : '文章详情' },
-      ]"
-    />
-
     <PageCard v-if="doc" :title="doc.title">
       <template #extra>
         <div class="doc-detail__actions">

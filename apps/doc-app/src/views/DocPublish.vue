@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { PageCard, Breadcrumb } from '@mic/components'
+import { PageCard } from '@mic/components'
 
 defineOptions({ name: 'DocPublish' })
 
@@ -55,7 +55,6 @@ function handleReset() {
 
 <template>
   <div>
-    <Breadcrumb />
     <PageCard title="发布管理">
       <el-steps :active="2" finish-status="success" style="margin-bottom: 24px">
         <el-step title="草稿" />

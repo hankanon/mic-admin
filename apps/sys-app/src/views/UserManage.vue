@@ -1,9 +1,9 @@
 <script setup lang="ts">
 defineOptions({ name: 'UserManage' })
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { PageCard, Breadcrumb } from '@mic/components'
+import { PageCard } from '@mic/components'
 import { userApi } from '../api/user'
 import { roleApi } from '../api/role'
 import type { RoleView, UserPayload, UserView } from '../types'
@@ -68,9 +68,10 @@ const form = reactive<UserPayload>({
   phone: '',
   status: 'active',
   roleIds: [],
+  password: '',
 })
 
-const rules: FormRules = {
+const rules = computed<FormRules>(() => ({
   username: [
     { required: true, message: '请输入用户名', trigger: 'blur' },
     { pattern: /^[A-Za-z0-9_]+$/, message: '只能包含字母、数字和下划线', trigger: 'blur' },
@@ -81,13 +82,20 @@ const rules: FormRules = {
     { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
   ],
   phone: [{ pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }],
-}
+  password: editingId.value
+    ? []
+    : [
+        { required: true, message: '请输入登录密码', trigger: 'blur' },
+        { min: 1, max: 100, message: '密码长度 1-100', trigger: 'blur' },
+      ],
+}))
 
 function openCreate() {
   editingId.value = null
   dialogTitle.value = '新增人员'
-  Object.assign(form, { username: '', name: '', email: '', phone: '', status: 'active', roleIds: [] })
+  Object.assign(form, { username: '', name: '', email: '', phone: '', status: 'active', roleIds: [], password: '' })
   dialogVisible.value = true
+  nextTick(() => formRef.value?.clearValidate())
 }
 
 function openEdit(row: UserView) {
@@ -100,8 +108,10 @@ function openEdit(row: UserView) {
     phone: row.phone || '',
     status: row.status,
     roleIds: [...row.roleIds],
+    password: '',
   })
   dialogVisible.value = true
+  nextTick(() => formRef.value?.clearValidate())
 }
 
 async function submit() {
@@ -116,6 +126,8 @@ async function submit() {
       status: form.status,
       roleIds: form.roleIds,
     }
+    // 编辑时仅当填写了密码才更新；新增时密码必填（由 rules 保证）
+    if (form.password) payload.password = form.password
     try {
       if (editingId.value) {
         await userApi.update(editingId.value, payload)
@@ -150,7 +162,6 @@ async function removeUser(row: UserView) {
 
 <template>
   <div>
-    <Breadcrumb />
     <PageCard title="人员管理">
       <template #extra>
         <el-button type="primary" size="small" @click="openCreate">新增人员</el-button>
@@ -221,19 +232,28 @@ async function removeUser(row: UserView) {
       </el-table>
     </PageCard>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px">
+    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="520px" destroy-on-close>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="90px">
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" placeholder="登录用户名" />
+          <el-input v-model="form.username" placeholder="登录用户名" autocomplete="username" />
         </el-form-item>
         <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="请输入姓名" />
+          <el-input v-model="form.name" placeholder="请输入姓名" autocomplete="off" />
         </el-form-item>
         <el-form-item label="邮箱" prop="email">
-          <el-input v-model="form.email" placeholder="请输入邮箱" />
+          <el-input v-model="form.email" placeholder="请输入邮箱" autocomplete="off" />
         </el-form-item>
         <el-form-item label="手机号">
-          <el-input v-model="form.phone" placeholder="可选" />
+          <el-input v-model="form.phone" placeholder="可选" autocomplete="tel" />
+        </el-form-item>
+        <el-form-item label="登录密码" prop="password">
+          <el-input
+            v-model="form.password"
+            type="password"
+            show-password
+            autocomplete="new-password"
+            :placeholder="editingId ? '留空表示不修改密码' : '请输入登录密码'"
+          />
         </el-form-item>
         <el-form-item label="状态">
           <el-radio-group v-model="form.status">

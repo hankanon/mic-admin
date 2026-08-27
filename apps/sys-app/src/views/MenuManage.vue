@@ -1,14 +1,17 @@
 <script setup lang="ts">
 defineOptions({ name: 'MenuManage' })
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { PageCard, Breadcrumb } from '@mic/components'
+import { PageCard } from '@mic/components'
 import { menuApi } from '../api/menu'
 import type { AppKey, MenuNode, MenuPayload } from '../types'
 
 const appKeys: { label: string; value: AppKey }[] = [
-  { label: '文档发布', value: 'doc' },
+  { label: '首页大盘', value: 'dashboard' },
+  { label: '文档管理', value: 'doc' },
+  { label: '智能问答', value: 'qa' },
+  { label: '个人中心', value: 'profile' },
   { label: '系统管理', value: 'sys' },
 ]
 
@@ -87,7 +90,31 @@ const rules: FormRules = {
   appKey: [{ required: true, message: '请选择所属子应用', trigger: 'change' }],
   title: [{ required: true, message: '请输入菜单名称', trigger: 'blur' }],
   type: [{ required: true, message: '请选择菜单类型', trigger: 'change' }],
+  path: [
+    {
+      validator: (_rule, _value, callback) => {
+        // 目录(catalog)无路由，叶子菜单(menu)必须填写路由路径
+        if (form.type === 'catalog') return callback()
+        if (!form.path || !form.path.trim()) return callback(new Error('请输入路由路径'))
+        callback()
+      },
+      trigger: ['blur', 'change'],
+    },
+  ],
 }
+
+// 菜单类型切换时联动处理路由路径校验
+// catalog 类型不需要路由路径，清空旧错误；menu 类型需要必填，触发校验
+watch(
+  () => form.type,
+  (type) => {
+    if (type === 'catalog') {
+      formRef.value?.clearValidate('path')
+    } else {
+      formRef.value?.validateField('path').catch(() => {})
+    }
+  },
+)
 
 // 父菜单可选项（排除自身及其子树，防止循环引用）
 const parentOptions = computed(() => {
@@ -148,7 +175,8 @@ async function submit() {
       parentId: form.parentId,
       title: form.title,
       icon: form.icon || undefined,
-      path: form.path || undefined,
+      // 目录类型 path 可空：显式传空字符串，确保后端清空旧值；菜单类型必填
+      path: form.type === 'catalog' ? '' : form.path,
       type: form.type,
       order: form.order,
       visible: form.visible,
@@ -233,7 +261,6 @@ async function move(row: MenuNode, dir: -1 | 1) {
 
 <template>
   <div>
-    <Breadcrumb />
     <PageCard title="菜单管理">
       <template #extra>
         <el-button type="primary" size="small" @click="openCreate(0)">新增菜单</el-button>
@@ -301,16 +328,9 @@ async function move(row: MenuNode, dir: -1 | 1) {
           </template>
         </el-table-column>
         <el-table-column label="路径" prop="path" min-width="160" />
-        <el-table-column label="排序" width="140">
+        <el-table-column label="排序" width="80" align="center">
           <template #default="{ row }">
-            <el-input-number
-              v-model="row.order"
-              :min="0"
-              size="small"
-              controls-position="right"
-              style="width: 110px"
-              @change="saveOrder(row)"
-            />
+            <span class="menu-order">{{ row.order }}</span>
           </template>
         </el-table-column>
         <el-table-column label="可见" width="80">
@@ -356,7 +376,7 @@ async function move(row: MenuNode, dir: -1 | 1) {
         <el-form-item label="图标">
           <el-input v-model="form.icon" placeholder="Element Plus 图标名，如 Document" />
         </el-form-item>
-        <el-form-item label="路由路径">
+        <el-form-item label="路由路径" prop="path" :required="form.type === 'menu'">
           <el-input v-model="form.path" placeholder="如 /sys/menu（目录可留空）" />
         </el-form-item>
         <el-form-item label="排序">

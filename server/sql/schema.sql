@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `menus` (
 CREATE TABLE IF NOT EXISTS `roles` (
   `id`          INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
   `name`        VARCHAR(50)  NOT NULL                COMMENT '角色名称',
-  `code`        VARCHAR(50)  NOT NULL                COMMENT '角色唯一标识（字母/数字/下划线）',
+  `code`        VARCHAR(50)  NOT NULL                COMMENT '角色唯一标识（字母/数字/下划线/短横线）',
   `description` VARCHAR(200) DEFAULT NULL            COMMENT '描述',
   `created_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `name`       VARCHAR(50)  NOT NULL                COMMENT '姓名',
   `email`      VARCHAR(100) NOT NULL                COMMENT '邮箱（唯一）',
   `phone`      VARCHAR(20)  DEFAULT NULL            COMMENT '手机号',
+  `password`   VARCHAR(100) DEFAULT NULL            COMMENT '登录密码（明文，初始默认 123456）',
   `status`     VARCHAR(20)  NOT NULL DEFAULT 'active' COMMENT '状态: active / disabled',
   `created_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

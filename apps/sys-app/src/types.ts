@@ -1,4 +1,4 @@
-export type AppKey = 'doc' | 'sys'
+export type AppKey = 'dashboard' | 'doc' | 'qa' | 'profile' | 'sys'
 export type MenuType = 'catalog' | 'menu'
 export type UserStatus = 'active' | 'disabled'
 
@@ -30,6 +30,8 @@ export interface RoleView {
   description?: string
   /** 关联菜单标题（后端视图附带） */
   menuTitles: string[]
+  /** 关联菜单节点（含层级信息，便于按子应用树形展示） */
+  menus: { id: number; title: string; parentId: number; appKey: AppKey }[]
   createdAt?: string
   updatedAt?: string
 }
@@ -46,6 +48,8 @@ export interface UserView {
   roleIds: number[]
   /** 关联角色名称（后端视图附带） */
   roleNames: string[]
+  /** 登录密码（创建必填，编辑可选；列表不返回明文） */
+  password?: string
   createdAt?: string
   updatedAt?: string
 }

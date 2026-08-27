@@ -20,6 +20,47 @@ interface MenuRow extends RowDataPacket {
   updated_at: Date | string
 }
 
+// 应用段编码：与菜单初始化数据的 ID 规则保持一致
+const APP_KEY_CODE: Record<AppKey, number> = {
+  dashboard: 1,
+  doc: 2,
+  qa: 3,
+  profile: 4,
+  sys: 5,
+}
+
+// 解析层级编码 ID 为四段：[应用段, L1, L2, L3]
+function parseSegments(id: number): { app: number; l1: number; l2: number; l3: number } {
+  const s = String(id).padStart(8, '0')
+  return {
+    app: Number(s.slice(0, 2)),
+    l1: Number(s.slice(2, 4)),
+    l2: Number(s.slice(4, 6)),
+    l3: Number(s.slice(6, 8)),
+  }
+}
+
+// 依据「应用段 + 父级路径 + 同级顺序」生成层级编码 ID
+// 格式：应用段(2) + L1(2) + L2(2) + L3(2)，未用层级补 0，按数值序即展示顺序
+function buildMenuId(appKey: AppKey, parentId: number | null, order: number): number {
+  const code = APP_KEY_CODE[appKey]
+  const base = code * 1_000_000
+  if (!parentId) {
+    // 顶级菜单：应用段 + L1(order) + 00 + 00
+    return base + order * 10_000
+  }
+  const p = parseSegments(parentId)
+  if (p.l3 !== 0) {
+    throw new ApiError('菜单层级过深，最多支持三级', 40000)
+  }
+  if (p.l2 === 0) {
+    // 父级为 L1：应用段 + L1 + L2(order) + 00
+    return base + p.l1 * 10_000 + order * 100
+  }
+  // 父级为 L2：应用段 + L1 + L2 + L3(order)
+  return base + p.l1 * 10_000 + p.l2 * 100 + order
+}
+
 function mapMenu(r: MenuRow): Menu {
   return {
     id: r.id,
@@ -49,12 +90,12 @@ export class MenuService {
     return rows[0]
   }
 
-  /** 扁平列表：可按 appKey 过滤，按 parentId/order 排序 */
+  /** 扁平列表：可按 appKey 过滤，按层级编码 ID 排序（与展示顺序一致） */
   async list(appKey?: string): Promise<Menu[]> {
     const sql =
       'SELECT * FROM `menus`' +
       (appKey ? ' WHERE `app_key` = ?' : '') +
-      ' ORDER BY `parent_id`, `order`'
+      ' ORDER BY `id`'
     const [rows] = appKey
       ? await this.pool.query<MenuRow[]>(sql, [appKey])
       : await this.pool.query<MenuRow[]>(sql)
@@ -86,31 +127,53 @@ export class MenuService {
   }
 
   async create(input: MenuCreateInput): Promise<Menu> {
-    if (input.parentId !== 0 && input.parentId != null) {
-      const parent = await this.findRow(input.parentId)
+    const parentId = input.parentId && input.parentId !== 0 ? input.parentId : null
+    if (parentId) {
+      const parent = await this.findRow(parentId)
       if (!parent) throw new ApiError('父菜单不存在', 40400)
       if (parent.app_key !== input.appKey) {
         throw new ApiError('父菜单与目标菜单所属子应用不一致', 40000)
       }
     }
-    const parentId = input.parentId && input.parentId !== 0 ? input.parentId : null
-    const [result] = await this.pool.query<ResultSetHeader>(
+    // 排序：显式传入 order 优先，否则取同级最大 order + 1
+    const order =
+      input.order > 0
+        ? input.order
+        : await this.nextOrder(input.appKey, parentId)
+    // 生成与层级结构一致的编码 ID
+    const id = buildMenuId(input.appKey, parentId, order)
+    const [dup] = await this.pool.query<RowDataPacket[]>(
+      'SELECT 1 FROM `menus` WHERE `id` = ?',
+      [id],
+    )
+    if (dup.length) throw new ApiError('菜单 ID 已存在（同应用同级排序冲突）', 40000)
+    await this.pool.query<ResultSetHeader>(
       'INSERT INTO `menus` ' +
-        '(`app_key`, `parent_id`, `title`, `icon`, `path`, `type`, `order`, `visible`, `permission`) ' +
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        '(`id`, `app_key`, `parent_id`, `title`, `icon`, `path`, `type`, `order`, `visible`, `permission`) ' +
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
+        id,
         input.appKey,
         parentId,
         input.title,
         input.icon ?? null,
         input.path ?? null,
         input.type,
-        input.order,
+        order,
         input.visible ? 1 : 0,
         input.permission ?? null,
       ],
     )
-    return this.get(result.insertId)
+    return this.get(id)
+  }
+
+  /** 取某应用在指定父级下的同级最大 order + 1 */
+  private async nextOrder(appKey: AppKey, parentId: number | null): Promise<number> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT MAX(`order`) AS m FROM `menus` WHERE `app_key` = ? AND `parent_id` <=> ?',
+      [appKey, parentId],
+    )
+    return (Number(rows[0]?.m) || 0) + 1
   }
 
   async update(id: number, input: MenuUpdateInput): Promise<Menu> {
@@ -147,6 +210,7 @@ export class MenuService {
       sets.push('`title` = ?')
       params.push(input.title)
     }
+    // 可空字段：上送了（含空字符串）就原样保存；未上送（undefined）则保留数据库默认值 NULL
     if (input.icon !== undefined) {
       sets.push('`icon` = ?')
       params.push(input.icon)

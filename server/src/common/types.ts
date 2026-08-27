@@ -1,4 +1,4 @@
-export type AppKey = 'doc' | 'sys'
+export type AppKey = 'dashboard' | 'doc' | 'qa' | 'profile' | 'sys'
 
 export type MenuType = 'catalog' | 'menu'
 

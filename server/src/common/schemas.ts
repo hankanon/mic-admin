@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const appKeyEnum = z.enum(['doc', 'sys'])
+export const appKeyEnum = z.enum(['dashboard', 'doc', 'qa', 'profile', 'sys'])
 export const menuTypeEnum = z.enum(['catalog', 'menu'])
 export const userStatusEnum = z.enum(['active', 'disabled'])
 
@@ -43,7 +43,7 @@ export const roleCreateSchema = z.object({
     .string()
     .min(1, '角色标识必填')
     .max(50)
-    .regex(/^[A-Za-z0-9_]+$/, '标识只能包含字母、数字和下划线'),
+    .regex(/^[A-Za-z0-9_-]+$/, '标识只能包含字母、数字、下划线和短横线'),
   appKeys: z.array(appKeyEnum).default([]),
   menuIds: z.array(z.number().int().positive()).default([]),
   description: z.string().max(200).optional(),
@@ -63,6 +63,7 @@ export const userCreateSchema = z.object({
   phone: optionalPhone,
   status: userStatusEnum.default('active'),
   roleIds: z.array(z.number().int().positive()).default([]),
+  password: z.string().min(1, '登录密码必填').max(100, '密码过长'),
 })
 
 export const userUpdateSchema = userCreateSchema.partial()

@@ -17,6 +17,8 @@ interface RoleRow extends RowDataPacket {
 export interface RoleView extends Role {
   /** 关联菜单标题，便于前端展示 */
   menuTitles: string[]
+  /** 关联菜单节点（含层级信息），便于前端按子应用以树结构展示 */
+  menus: { id: number; title: string; parentId: number; appKey: AppKey }[]
 }
 
 function mapRole(r: RoleRow): Role {
@@ -70,13 +72,33 @@ export class RoleService {
     return rows.map((r) => r.title as string)
   }
 
+  private async loadMenuNodes(
+    menuIds: number[],
+  ): Promise<{ id: number; title: string; parentId: number; appKey: AppKey }[]> {
+    if (!menuIds.length) return []
+    const placeholders = menuIds.map(() => '?').join(',')
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT `id`, `title`, `parent_id` AS parentId, `app_key` AS appKey FROM `menus` WHERE `id` IN (' +
+        placeholders +
+        ')',
+      menuIds,
+    )
+    return rows.map((r) => ({
+      id: r.id as number,
+      title: r.title as string,
+      parentId: r.parentId as number,
+      appKey: r.appKey as AppKey,
+    }))
+  }
+
   private async toView(roleId: number): Promise<RoleView> {
     const row = await this.findRow(roleId)
     if (!row) throw new ApiError('角色不存在', 40400)
     const appKeys = await this.loadAppKeys(roleId)
     const menuIds = await this.loadMenuIds(roleId)
     const menuTitles = await this.loadMenuTitles(menuIds)
-    return { ...mapRole(row), appKeys, menuIds, menuTitles }
+    const menus = await this.loadMenuNodes(menuIds)
+    return { ...mapRole(row), appKeys, menuIds, menuTitles, menus }
   }
 
   async list(): Promise<RoleView[]> {
@@ -86,7 +108,8 @@ export class RoleService {
       const appKeys = await this.loadAppKeys(r.id)
       const menuIds = await this.loadMenuIds(r.id)
       const menuTitles = await this.loadMenuTitles(menuIds)
-      result.push({ ...mapRole(r), appKeys, menuIds, menuTitles })
+      const menus = await this.loadMenuNodes(menuIds)
+      result.push({ ...mapRole(r), appKeys, menuIds, menuTitles, menus })
     }
     return result
   }

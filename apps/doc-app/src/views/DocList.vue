@@ -2,7 +2,7 @@
 import { computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type UploadUserFile } from 'element-plus'
-import { PageCard, SearchForm, Breadcrumb } from '@mic/components'
+import { PageCard, SearchForm } from '@mic/components'
 import { DOC_CATEGORIES, DOC_DEFAULT_COVER, useDocStore, type DocItem, type DocStatus } from '../store/doc'
 import { grantDetailAccess } from '../router/detailAccess'
 
@@ -92,8 +92,6 @@ const fileList = computed<UploadUserFile[]>(() => [])
 
 <template>
   <div class="doc-list">
-    <Breadcrumb />
-
     <SearchForm title="文档筛选" @search="onSearch" @reset="onReset">
       <el-form-item label="标题">
         <el-input v-model="query.title" placeholder="按标题搜索" clearable />

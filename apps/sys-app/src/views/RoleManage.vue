@@ -3,7 +3,7 @@ defineOptions({ name: 'RoleManage' })
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { PageCard, Breadcrumb, menuConfig } from '@mic/components'
+import { PageCard, menuConfig } from '@mic/components'
 import { useRoleStore } from '../store/role'
 import type { AppKey, RolePayload, RoleView } from '../types'
 
@@ -182,11 +182,65 @@ function openDetail(row: RoleView) {
 const formatTime = (t?: string) => (t ? t.slice(0, 19).replace('T', ' ') : '-')
 /** 菜单树根节点（parentId=0）展示所属应用 tag */
 const isRootNode = (data: { parentId: number }) => data.parentId === 0
+
+// ---------------- 菜单权限树形展示 ----------------
+interface MenuTreeNode {
+  id: number
+  title: string
+  appKey: AppKey
+  depth: number
+  children: MenuTreeNode[]
+}
+
+/** 将角色的菜单权限按子应用分组并构建层级树 */
+function roleMenuGroups(
+  role: RoleView,
+): { appKey: AppKey; label: string; roots: MenuTreeNode[] }[] {
+  const list = role.menus || []
+  const byApp = new Map<AppKey, { id: number; title: string; parentId: number; appKey: AppKey }[]>()
+  for (const m of list) {
+    if (!byApp.has(m.appKey)) byApp.set(m.appKey, [])
+    byApp.get(m.appKey)!.push(m)
+  }
+  const groups: { appKey: AppKey; label: string; roots: MenuTreeNode[] }[] = []
+  for (const [appKey, items] of byApp) {
+    const map = new Map<number, MenuTreeNode>()
+    items.forEach((m) =>
+      map.set(m.id, { id: m.id, title: m.title, appKey, depth: 0, children: [] }),
+    )
+    const roots: MenuTreeNode[] = []
+    for (const m of items) {
+      const node = map.get(m.id)!
+      const parent = map.get(m.parentId)
+      if (parent && m.parentId !== 0) parent.children.push(node)
+      else roots.push(node)
+    }
+    const setDepth = (ns: MenuTreeNode[], d: number) =>
+      ns.forEach((n) => {
+        n.depth = d
+        setDepth(n.children, d + 1)
+      })
+    setDepth(roots, 0)
+    groups.push({ appKey, label: appLabel(appKey), roots })
+  }
+  return groups
+}
+
+/** 先序拍平树，便于模板按层级缩进渲染 */
+function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
+  const out: MenuTreeNode[] = []
+  const walk = (ns: MenuTreeNode[]) =>
+    ns.forEach((n) => {
+      out.push(n)
+      walk(n.children)
+    })
+  walk(nodes)
+  return out
+}
 </script>
 
 <template>
   <div>
-    <Breadcrumb />
     <PageCard title="角色管理">
       <template #extra>
         <el-button size="small" :loading="roleStore.loading" @click="roleStore.fetchRoles()">
@@ -247,20 +301,6 @@ const isRootNode = (data: { parentId: number }) => data.parentId === 0
               {{ appLabel(k) }}
             </el-tag>
             <span v-if="!row.appKeys.length" class="cell-empty">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="菜单权限" min-width="220">
-          <template #default="{ row }">
-            <el-tag
-              v-for="t in row.menuTitles"
-              :key="t"
-              size="small"
-              type="info"
-              style="margin: 2px"
-            >
-              {{ t }}
-            </el-tag>
-            <span v-if="!row.menuTitles.length" class="cell-empty">-</span>
           </template>
         </el-table-column>
         <el-table-column prop="description" label="描述" min-width="150" show-overflow-tooltip />
@@ -333,7 +373,6 @@ const isRootNode = (data: { parentId: number }) => data.parentId === 0
               :data="roleStore.menuTree"
               show-checkbox
               node-key="id"
-              :check-strictly="true"
               :props="{ label: 'title', children: 'children' }"
             >
               <template #default="{ data }">
@@ -350,7 +389,7 @@ const isRootNode = (data: { parentId: number }) => data.parentId === 0
               </template>
             </el-tree>
             <div v-if="form.appKeys.length" class="form-tip">
-              勾选该角色可访问的菜单（按所选子应用过滤，父子独立勾选）
+              勾选该角色可访问的菜单（按所选子应用过滤，勾选父级自动包含其下子菜单）
             </div>
           </div>
         </el-form-item>
@@ -366,7 +405,7 @@ const isRootNode = (data: { parentId: number }) => data.parentId === 0
     </el-dialog>
 
     <!-- 查看详情 -->
-    <el-drawer v-model="detailVisible" title="角色详情" size="420px">
+    <el-drawer v-model="detailVisible" title="角色详情" size="560px">
       <el-descriptions v-if="detail" :column="1" border>
         <el-descriptions-item label="角色名称">{{ detail.name }}</el-descriptions-item>
         <el-descriptions-item label="角色标识">
@@ -379,16 +418,24 @@ const isRootNode = (data: { parentId: number }) => data.parentId === 0
           <span v-if="!detail.appKeys.length" class="cell-empty">-</span>
         </el-descriptions-item>
         <el-descriptions-item label="菜单权限">
-          <el-tag
-            v-for="t in detail.menuTitles"
-            :key="t"
-            size="small"
-            type="info"
-            style="margin: 2px"
-          >
-            {{ t }}
-          </el-tag>
-          <span v-if="!detail.menuTitles.length" class="cell-empty">-</span>
+          <div v-if="detail && roleMenuGroups(detail).length" class="role-menu-cells">
+            <div v-for="g in roleMenuGroups(detail)" :key="g.appKey" class="menu-group-cell">
+              <el-tag size="small" type="warning" effect="plain" class="menu-group-tag">
+                {{ g.label }}
+              </el-tag>
+              <div class="menu-tree-list">
+                <div
+                  v-for="n in flattenMenuNodes(g.roots)"
+                  :key="n.id"
+                  class="menu-tree-node"
+                  :style="{ paddingLeft: n.depth * 14 + 4 + 'px' }"
+                >
+                  <span v-if="n.depth > 0" class="tree-prefix">└ </span>{{ n.title }}
+                </div>
+              </div>
+            </div>
+          </div>
+          <span v-else class="cell-empty">-</span>
         </el-descriptions-item>
         <el-descriptions-item label="描述">{{ detail.description || '-' }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ formatTime(detail.createdAt) }}</el-descriptions-item>
@@ -432,5 +479,37 @@ const isRootNode = (data: { parentId: number }) => data.parentId === 0
 }
 .search-form :deep(.el-form-item) {
   margin-bottom: 16px;
+}
+/* 菜单权限树形展示 */
+.role-menu-cells {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.menu-group-cell {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.menu-group-tag {
+  flex: none;
+  margin-top: 2px;
+}
+.menu-tree-list {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.menu-tree-node {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+.tree-prefix {
+  color: var(--el-text-color-secondary);
 }
 </style>

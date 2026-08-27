@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Breadcrumb, PageCard } from '@mic/components'
+import { PageCard } from '@mic/components'
 import { MdPreview } from 'md-editor-v3'
 import MarkdownEditor from '../components/MarkdownEditor.vue'
 import CoverUpload from '../components/CoverUpload.vue'
@@ -100,13 +100,6 @@ function openPreview() {
 
 <template>
   <div class="doc-edit">
-    <Breadcrumb
-      :items="[
-        { title: '文档管理', path: '/list' },
-        { title: isEdit ? '编辑文档' : '新增文档' },
-      ]"
-    />
-
     <PageCard :title="isEdit ? '编辑文档' : '新增文档'">
       <el-form
         ref="formRef"

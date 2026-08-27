@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onBeforeUnmount } from 'vue'
 import { ElMessage, type UploadFile, type UploadRawFile } from 'element-plus'
-import { PageCard, Breadcrumb } from '@mic/components'
+import { PageCard } from '@mic/components'
 import VuePdfEmbed from 'vue-pdf-embed'
 import * as pdfjsLib from 'pdfjs-dist'
 import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
@@ -220,8 +220,6 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="doc-preview">
-    <Breadcrumb />
-
     <PageCard title="文档预览" subtitle="上传 PDF 文档，在线预览、翻页与缩放" :body-style="cardBodyStyle">
       <template #extra>
         <el-button
