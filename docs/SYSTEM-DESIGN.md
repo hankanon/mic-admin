@@ -518,7 +518,7 @@ erDiagram
 ### 9.1 安全加固（优先级高）
 
 1. **密码哈希存储**：`users.password` 改 bcrypt/argon2 哈希 + salt，注册/编辑走单向加密，登录改比对哈希；同步增加密码强度策略。
-2. **真实 JWT**：`mock-token` 换签名 JWT（含 exp/iat/sub/roleId），后端加全局 `AuthGuard`（白名单：login/health）；配套 refresh token 静默续期。
+2. **真实 JWT**：`mock-token` 换签名 JWT（HS256，含 `iss/aud/sub/jti/iat/exp/roleId`），后端加全局 `AuthGuard`（`@Public()` 白名单：login/health）；access(15min)/refresh(7d) 双令牌，refresh 旋转单次使用 + 服务端吊销（`refresh_tokens` 表存哈希、改密/禁用经 `token_version` 即时失效），前端 401 单飞静默刷新重放。**已实施并通过回归验证，详细方案见 [JWT-AUTH-DESIGN.md](./JWT-AUTH-DESIGN.md)。**
 3. **接口级鉴权**：菜单/角色/人员 CRUD 目前**无鉴权**，任何人可直调——上线前必须补 guard（按 `menus.permission` 做接口级授权点）。
 4. **CORS 收紧**：`app.use(cors())` 允许全部来源，生产应白名单域名。
 5. **防暴力破解**：登录接口加失败计数锁定/验证码；全站 HTTPS（当前明文密码走 HTTP）。

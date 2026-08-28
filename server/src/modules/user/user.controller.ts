@@ -3,42 +3,43 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Post,
   Put,
   Query,
+  Req,
 } from '@nestjs/common'
 import { UseGuards } from '@nestjs/common'
 import { ApiError } from '../../common/errors'
+import { Public } from '../../common/public.decorator'
 import { UserService } from './user.service'
 import { loginSchema, userCreateSchema, userUpdateSchema } from '../../common/schemas'
-import { parseTokenUserId } from '../../common/auth-token'
 import { PermissionGuard } from '../../common/permission.guard'
 import { RequirePermission } from '../../common/permission.decorator'
 import { USER_PERMISSIONS } from '../../common/permissions'
+import type { RequestUser } from '../auth/auth.guard'
 
 @UseGuards(PermissionGuard)
 @Controller('api/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  /** 登录：校验账号密码，返回 token 与用户信息（含角色、权限、菜单） */
+  /** 登录（公开接口）：校验账号密码，返回 JWT 令牌对与用户信息（含角色、权限、菜单） */
+  @Public()
   @Post('login')
   login(@Body() body: unknown) {
     return this.userService.login(loginSchema.parse(body))
   }
 
-  /** 切换角色：返回该角色的权限与菜单（从 token 解析当前用户） */
+  /** 切换角色：返回该角色的权限与菜单，并重签 access token（身份由全局 AuthGuard 解析） */
   @Get('role-data')
   roleData(
-    @Headers('authorization') authorization: string | undefined,
+    @Req() req: { user: RequestUser },
     @Query('roleId') roleId: string,
   ) {
-    const userId = parseTokenUserId(authorization)
     const id = Number(roleId)
     if (!Number.isInteger(id) || id <= 0) throw new ApiError('角色 id 不合法', 42200)
-    return this.userService.getRoleData(userId, id)
+    return this.userService.getRoleData(req.user.userId, id)
   }
 
   @Get()

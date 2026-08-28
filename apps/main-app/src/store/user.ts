@@ -2,19 +2,24 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
   getToken,
+  getRefreshToken,
   getUserInfo,
-  setToken,
+  setTokens,
   setUserInfo,
-  removeToken,
-  removeUserInfo,
+  scheduleRefresh,
+  logout as clearAuth,
   request,
+  silentRefresh,
   type AuthMenuItem,
   type UserInfo,
 } from '@mic/utils'
 
-/** 后端登录返回结构 */
+/** 后端登录返回结构（真实 JWT：access/refresh 令牌对） */
 interface LoginResponse {
-  token: string
+  accessToken: string
+  refreshToken: string
+  /** access token 有效期（秒），用于主动预刷新调度 */
+  expiresIn: number
   user: {
     id: number
     username: string
@@ -28,12 +33,14 @@ interface LoginResponse {
   }
 }
 
-/** 角色权限数据（切换角色接口返回） */
+/** 角色权限数据（切换角色接口返回，另附重签的 access token） */
 interface RoleDataResponse {
   permissions: string[]
   menus: AuthMenuItem[]
   /** 按钮级权限点集合 */
   buttons: string[]
+  accessToken: string
+  expiresIn: number
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -46,15 +53,15 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * 登录：调用后端 /users/login 校验账号密码，
-   * 成功后保存 token 与用户信息（含角色列表、当前角色权限与菜单树）。
+   * 登录：调用后端 /users/login 校验账号密码，成功保存 JWT 令牌对与用户信息
+   * （含角色列表、当前角色权限与菜单树），并调度 access token 主动预刷新。
    */
   async function login(payload: { username: string; password: string }) {
     const res = await request.post<LoginResponse>('/users/login', {
       username: payload.username.trim(),
       password: payload.password,
     })
-    const { token: nextToken, user } = res.data
+    const { accessToken, refreshToken, expiresIn, user } = res.data
     const info: UserInfo = {
       id: user.id,
       username: user.username,
@@ -65,16 +72,18 @@ export const useUserStore = defineStore('user', () => {
       menus: user.menus,
       buttons: user.buttons ?? [],
     }
-    setToken(nextToken)
+    setTokens(accessToken, refreshToken)
     setUserInfo(info)
-    token.value = nextToken
+    token.value = accessToken
     userInfo.value = info
+    scheduleRefresh(expiresIn, silentRefresh)
     return info
   }
 
   /**
    * 切换角色：调用后端 /users/role-data 拉取目标角色的权限与菜单，
-   * 更新本地用户态并持久化；失败时抛错（保持原角色不变）。
+   * 后端会重签 access token（含新 roleId），refresh 保持不旋转。
+   * 失败时抛错（保持原角色不变）。
    */
   async function switchRole(roleId: number) {
     if (!userInfo.value) throw new Error('尚未登录')
@@ -90,14 +99,21 @@ export const useUserStore = defineStore('user', () => {
     }
     setUserInfo(next)
     userInfo.value = next
+    setTokens(res.data.accessToken, getRefreshToken() ?? '')
+    token.value = res.data.accessToken
+    scheduleRefresh(res.data.expiresIn, silentRefresh)
     return next
   }
 
+  /**
+   * 登出：同步清理本地登录态（含刷新定时器），并尽力通知后端吊销 refresh
+   * （上报失败不阻塞本地清理，access 会自然过期兜底）。
+   */
   function logout() {
-    removeToken()
-    removeUserInfo()
+    clearAuth()
     token.value = ''
     userInfo.value = null
+    request.post('/auth/logout').catch(() => {})
   }
 
   return { token, userInfo, init, login, switchRole, logout }

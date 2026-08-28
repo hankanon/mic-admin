@@ -1,15 +1,16 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { ApiError } from './errors'
-import { parseTokenUserId } from './auth-token'
 import { PermissionService } from './permission.service'
 import { PERMISSION_KEY } from './permission.decorator'
+import type { RequestUser } from '../modules/auth/auth.guard'
 
 /**
  * 按钮级接口鉴权守卫。
  *
- * 与 `@RequirePermission(code)` 配合使用：解析 token 得到用户 → 聚合其全部角色的
- * 按钮权限点 → 校验是否包含所需权限点，不满足返回 40300。
+ * 与 `@RequirePermission(code)` 配合使用：用户身份由全局 AuthGuard 解析并写入
+ * req.user（JWT 认证，本项目为 Bearer access token）→ 聚合其全部角色的按钮
+ * 权限点 → 校验是否包含所需权限点，不满足返回 40300。
  * 未声明 `@RequirePermission` 的接口直接放行（保持既有接口行为不变）。
  */
 @Injectable()
@@ -26,8 +27,10 @@ export class PermissionGuard implements CanActivate {
     )
     if (!required) return true
 
-    const req = context.switchToHttp().getRequest<{ headers: Record<string, string | undefined> }>()
-    const userId = parseTokenUserId(req.headers.authorization)
+    const req = context
+      .switchToHttp()
+      .getRequest<{ user: RequestUser }>()
+    const userId = req.user.userId
 
     const { permissions, buttons } = await this.permissionService.loadUserPermissions(userId)
 

@@ -5,7 +5,7 @@ import axios, {
   type InternalAxiosRequestConfig,
 } from 'axios'
 import { ElMessage } from 'element-plus'
-import { getToken } from '../auth'
+import { getToken, getRefreshToken, setTokens } from '../auth'
 import { isMicroEnv } from '../micro/env'
 import { emitToMain } from '../micro/bridge'
 
@@ -86,6 +86,24 @@ class HttpClient {
         if (axios.isCancel(error)) return Promise.reject(error)
         const status = error.response?.status
         if (status === 401) {
+          const config = error.config as (InternalAxiosRequestConfig & { _retried?: boolean }) | undefined
+          const url = config?.url ?? ''
+          // 登录/刷新接口本身的 401 不做无感刷新（无 refresh 或已失效）
+          const isAuthEndpoint = url.includes('/auth/refresh') || url.includes('/users/login')
+          if (config && !config._retried && !isAuthEndpoint) {
+            config._retried = true
+            // 无感刷新：单飞换新 access → 重放原请求；刷新失败走登出流程
+            return silentRefresh()
+              .then((token) => {
+                config.headers = config.headers ?? {}
+                config.headers.Authorization = `Bearer ${token}`
+                return this.instance(config)
+              })
+              .catch(() => {
+                this.handleUnauthorized()
+                return Promise.reject(error)
+              })
+          }
           this.handleUnauthorized()
         } else if (this.showError) {
           ElMessage.error(error.response?.data?.message || error.message || '网络异常')
@@ -140,5 +158,47 @@ export function createRequest(options?: RequestOptions): HttpClient {
  * 被取代的请求以 CanceledError 拒绝，调用方需用此工具区分「主动取消」与「真实失败」。
  */
 export const isCancel = axios.isCancel
+
+// ---- 无感刷新：access 过期后经 refresh token 换新并重放原请求 ----
+
+/** 刷新专用实例：不走主实例拦截器（避免 401 → 刷新 → 401 循环） */
+const refreshClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL ?? '/api',
+  timeout: 15000,
+})
+
+/** 刷新令牌对结构（与后端 /auth/refresh 返回一致） */
+interface RefreshResult {
+  accessToken: string
+  refreshToken: string
+  expiresIn: number
+}
+
+/** 单飞刷新锁：并发多个 401 只发起一次刷新请求，其余复用同一 Promise */
+let refreshPromise: Promise<string> | null = null
+
+/**
+ * 静默刷新 access token（单飞）。
+ * 成功后更新本地令牌对并返回新 access；失败抛出（调用方负责登出/兜底）。
+ * 注意：刷新失败时后端会吊销该 refresh，此处返回的拒绝即为最终状态。
+ */
+export function silentRefresh(): Promise<string> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      const refreshToken = getRefreshToken()
+      if (!refreshToken) throw new Error('无刷新令牌，请重新登录')
+      const res = await refreshClient.post<ApiResult<RefreshResult>>('/auth/refresh', {
+        refreshToken,
+      })
+      const body = res.data
+      if (!body || body.code !== 0) throw new Error(body?.message || '刷新令牌失败')
+      setTokens(body.data.accessToken, body.data.refreshToken)
+      return body.data.accessToken
+    })().finally(() => {
+      refreshPromise = null
+    })
+  }
+  return refreshPromise
+}
 
 export default request

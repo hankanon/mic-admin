@@ -1,7 +1,9 @@
 import { Inject, Injectable } from '@nestjs/common'
+import * as bcrypt from 'bcryptjs'
 import type { Pool } from 'mysql2/promise'
 import type { RowDataPacket, ResultSetHeader } from 'mysql2'
 import { ApiError } from '../../common/errors'
+import { AuthService } from '../auth/auth.service'
 import type { User } from '../../common/types'
 import type { UserCreateInput, UserUpdateInput, LoginInput } from '../../common/schemas'
 
@@ -48,9 +50,14 @@ export interface RoleData {
   buttons: string[]
 }
 
-/** 登录返回：token + 用户信息（含当前角色权限、菜单与按钮权限点） */
+/** 登录返回：JWT 令牌对 + 用户信息（含当前角色权限、菜单与按钮权限点） */
 export interface LoginResult {
-  token: string
+  /** access token（15min，Bearer 携带） */
+  accessToken: string
+  /** refresh token（7d，静默续期用，仅存前端） */
+  refreshToken: string
+  /** access token 有效期（秒），前端据此调度主动预刷新 */
+  expiresIn: number
   user: {
     id: number
     username: string
@@ -62,6 +69,12 @@ export interface LoginResult {
     /** 按钮级权限点集合 */
     buttons: string[]
   }
+}
+
+/** 切换角色返回：重新签发的 access token + 该角色的权限数据 */
+export interface RoleDataResult extends RoleData {
+  accessToken: string
+  expiresIn: number
 }
 
 function mapUser(r: UserRow): User {
@@ -80,7 +93,10 @@ function mapUser(r: UserRow): User {
 
 @Injectable()
 export class UserService {
-  constructor(@Inject('MYSQL_POOL') private readonly pool: Pool) {}
+  constructor(
+    @Inject('MYSQL_POOL') private readonly pool: Pool,
+    private readonly authService: AuthService,
+  ) {}
 
   private async findRow(id: number): Promise<UserRow | undefined> {
     const [rows] = await this.pool.query<UserRow[]>(
@@ -119,7 +135,8 @@ export class UserService {
   }
 
   /**
-   * 登录：校验用户名/密码（明文比对）与账号状态，返回 token 及当前角色（首个绑定角色）的权限与菜单。
+   * 登录：校验用户名/密码（bcrypt，兼容明文存量即时升级）与账号状态，
+   * 返回 JWT 令牌对及当前角色（首个绑定角色）的权限与菜单。
    */
   async login(input: LoginInput): Promise<LoginResult> {
     const [rows] = await this.pool.query<UserRow[]>(
@@ -127,7 +144,7 @@ export class UserService {
       [input.username],
     )
     const row = rows[0]
-    if (!row || row.password !== input.password) {
+    if (!row || !(await this.verifyPassword(row, input.password))) {
       throw new ApiError('账号或密码错误', 40100)
     }
     if (row.status !== 'active') {
@@ -139,8 +156,15 @@ export class UserService {
     }
     const currentRoleId = roles[0].id
     const { permissions, menus, buttons } = await this.buildRoleData(currentRoleId)
+    const { accessToken, refreshToken, expiresIn } = await this.authService.issueTokenPair(
+      row.id,
+      row.username,
+      currentRoleId,
+    )
     return {
-      token: `mock-token-${row.id}-${Date.now()}`,
+      accessToken,
+      refreshToken,
+      expiresIn,
       user: {
         id: row.id,
         username: row.username,
@@ -154,13 +178,34 @@ export class UserService {
     }
   }
 
-  /** 切换角色：校验角色归属后返回该角色的权限与菜单 */
-  async getRoleData(userId: number, roleId: number): Promise<RoleData> {
+  /** 密码校验：bcrypt 比对；明文存量账号校验通过后即时升级为 bcrypt 哈希（渐进迁移） */
+  private async verifyPassword(row: UserRow, password: string): Promise<boolean> {
+    const stored = row.password ?? ''
+    if (!stored) return false
+    const isBcrypt = /^\$2[aby]\$/.test(stored)
+    const ok = isBcrypt ? await bcrypt.compare(password, stored) : stored === password
+    if (ok && !isBcrypt) {
+      const hash = await bcrypt.hash(stored, 10)
+      await this.pool.query('UPDATE `users` SET `password` = ? WHERE `id` = ?', [hash, row.id])
+    }
+    return ok
+  }
+
+  /** 切换角色：校验角色归属后返回该角色的权限与菜单，并重签 access token（含新 roleId） */
+  async getRoleData(userId: number, roleId: number): Promise<RoleDataResult> {
     const roleIds = await this.loadRoleIds(userId)
     if (!roleIds.includes(roleId)) {
       throw new ApiError('当前账号未绑定该角色', 40300)
     }
-    return this.buildRoleData(roleId)
+    const roleData = await this.buildRoleData(roleId)
+    const user = await this.authService.loadAuthUser(userId)
+    if (!user) throw new ApiError('账号不存在', 40103, 401)
+    const { accessToken, expiresIn } = await this.authService.issueAccessToken(
+      userId,
+      user.username,
+      roleId,
+    )
+    return { ...roleData, accessToken, expiresIn }
   }
 
   /**
@@ -280,9 +325,10 @@ export class UserService {
     if (Number(dupEmail[0].cnt) > 0) throw new ApiError('邮箱已存在', 40000)
     await this.assertRolesExist(input.roleIds)
 
+    const passwordHash = await bcrypt.hash(input.password, 10)
     const [result] = await this.pool.query<ResultSetHeader>(
       'INSERT INTO `users` (`username`, `name`, `email`, `phone`, `status`, `password`) VALUES (?, ?, ?, ?, ?, ?)',
-      [input.username, input.name, input.email, input.phone ?? null, input.status, input.password],
+      [input.username, input.name, input.email, input.phone ?? null, input.status, passwordHash],
     )
     const userId = result.insertId
     if (input.roleIds.length) {
@@ -337,8 +383,11 @@ export class UserService {
     }
     if (input.password !== undefined) {
       sets.push('`password` = ?')
-      params.push(input.password)
+      params.push(await bcrypt.hash(input.password, 10))
     }
+    // 改密/禁用/启用均视为敏感变更；其中改密或置为禁用须吊销该用户会话
+    const needInvalidate =
+      input.password !== undefined || (input.status !== undefined && input.status !== 'active')
     if (sets.length) {
       await this.pool.query(
         'UPDATE `users` SET ' + sets.join(', ') + ' WHERE `id` = ?',
@@ -356,12 +405,19 @@ export class UserService {
         )
       }
     }
+    // 改密/禁用：token_version 自增使存量 access 立即失效，并吊销全部 refresh
+    if (needInvalidate) {
+      await this.pool.query('UPDATE `users` SET `token_version` = `token_version` + 1 WHERE `id` = ?', [id])
+      await this.authService.revokeAll(id)
+    }
     return this.toView(id)
   }
 
   async remove(id: number): Promise<void> {
     const row = await this.findRow(id)
     if (!row) throw new ApiError('人员不存在', 40400)
+    // 删除前清理其刷新令牌（存量 access 因用户不存在，AuthGuard 会拒绝）
+    await this.authService.revokeAll(id)
     await this.pool.query('DELETE FROM `users` WHERE `id` = ?', [id])
   }
 }
