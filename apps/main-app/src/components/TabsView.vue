@@ -38,11 +38,11 @@ function go(path: string) {
   router.push(path)
 }
 
-/** 关闭按钮：先判断是否需要跳转，再关闭 */
+/** 关闭按钮：先判断是否需要跳转，再关闭（无相邻页签时保持当前页面不动） */
 function closeFromButton(path: string) {
   const wasActive = activePath.value === path
   const next = tabsStore.closeTab(path)
-  if (wasActive) router.push(next)
+  if (wasActive && next) router.push(next)
 }
 
 /** 右键菜单命令：目标页签即右键命中的那个 tab（由模板传入） */
@@ -50,15 +50,14 @@ function onCommand(command: string | number | object, path: string) {
   const cmd = String(command)
   const target = path
   if (cmd === 'close-self') {
-    if (tabsStore.isAffix(target)) return
     const next = tabsStore.closeTab(target)
-    if (target === activePath.value) router.push(next)
+    if (target === activePath.value && next) router.push(next)
   } else if (cmd === 'close-others') {
     tabsStore.closeOthers(target)
     router.push(activePath.value)
   } else if (cmd === 'close-all') {
+    // 清空全部页签，保持当前页面不变（无默认跳转）
     tabsStore.closeAll()
-    router.push(activePath.value)
   }
 }
 
@@ -111,7 +110,6 @@ watch(activePath, async () => {
         >
           <span class="tab-item__title">{{ tab.title }}</span>
           <span
-            v-if="!tab.affix"
             class="tab-item__close"
             title="关闭"
             @click.stop="closeFromButton(tab.path)"
@@ -120,10 +118,7 @@ watch(activePath, async () => {
 
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item
-              command="close-self"
-              :disabled="tabsStore.isAffix(tab.path)"
-            >关闭自己</el-dropdown-item>
+            <el-dropdown-item command="close-self">关闭自己</el-dropdown-item>
             <el-dropdown-item command="close-others">关闭其他</el-dropdown-item>
             <el-dropdown-item command="close-all">关闭全部</el-dropdown-item>
           </el-dropdown-menu>

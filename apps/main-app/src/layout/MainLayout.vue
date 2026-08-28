@@ -10,12 +10,16 @@ import {
   matchMenuKey,
   stripAppPrefix,
   type MenuItem,
+  type AppKey,
 } from '@mic/components'
 import { hasAppPermission } from '@mic/utils'
 import { useUserStore } from '../store/user'
 import { useTabsStore } from '../store/tabs'
 import { useNotificationStore } from '../store/notification'
 import TabsView from '../components/TabsView.vue'
+
+// keep-alive 缓存组件需要具名（App.vue include 匹配）
+defineOptions({ name: 'MainLayout' })
 
 const router = useRouter()
 const route = useRoute()
@@ -39,6 +43,16 @@ const currentUserId = computed(
   () => userStore.userInfo?.username || (userStore.userInfo?.id != null ? String(userStore.userInfo.id) : undefined),
 )
 notificationStore.init(currentUserId.value)
+
+// 登录/登出/切角色后同步全局数据到子应用；
+// 重新登录时重建通知连接（keep-alive 复用 MainLayout 实例，顶层 init 不会在二次登录执行）
+watch(
+  () => userStore.userInfo,
+  (info) => {
+    microApp.setGlobalData({ token: userStore.token, userInfo: info })
+    if (info) notificationStore.init(currentUserId.value)
+  },
+)
 
 const iconComponents = ElementPlusIconsVue as Record<string, any>
 function resolveIcon(name?: string) {
@@ -140,7 +154,14 @@ function handleLogout() {
   router.push('/login')
 }
 
-/** 切换角色：拉取新角色的权限与菜单，重新下发全局数据，并校正路由与页签到新权限范围内 */
+/**
+ * 切换角色：拉取新角色的权限与菜单，重新下发全局数据，并校正路由与页签到新权限范围内。
+ *
+ * 一致性策略：
+ * - 当前路由所属 app 无权限 → 跳到「第一个有权限的顶级组」的首页（dashboard 永远可达，取 `/`；其他取 children[0].path）
+ * - 有权限但当前菜单已不在新菜单树中（如某顶级组的某子项被取消）→ 仍跳到该 app 的首个子项，确保内容区与左侧菜单一致
+ * - 跳转完成后由 watch(route.fullPath) 触发 syncTabs 统一添加页签与高亮
+ */
 async function handleSwitchAccount(roleIdStr: string) {
   const roleId = Number(roleIdStr)
   if (!Number.isInteger(roleId) || roleId === userStore.userInfo?.currentRoleId) return
@@ -154,17 +175,86 @@ async function handleSwitchAccount(roleIdStr: string) {
     token: userStore.token,
     userInfo: userStore.userInfo,
   })
-  // 菜单集合已变化：重置页签，避免残留失效路径
+  // 菜单集合已变化：先重置页签，避免校正跳转前残留旧页签干扰高亮
   tabsStore.reset()
-  // 当前路由越权（doc/sys）时校正到新权限范围内
-  const perms = userStore.userInfo?.permissions ?? []
+
+  // 解析当前路由所属顶级 appKey
   const path = route.fullPath.replace(/^#/, '')
-  const appKey = path.startsWith('/doc') ? 'doc' : path.startsWith('/sys') ? 'sys' : null
-  if (appKey && !hasAppPermission(perms, appKey)) {
-    const first = (['doc', 'sys'] as const).find((k) => hasAppPermission(perms, k))
-    router.push(first ? `/${first}` : '/')
+  const curAppKey = parseAppKeyFromPath(path)
+  const perms = userStore.userInfo?.permissions ?? []
+  const nextMenus = menus.value // 切换后的新菜单树
+  // 校正目标：有权限的第一个顶级组（dashboard 始终第一个且公共可达）
+  const targetPath = pickFirstAccessibleAppPath(nextMenus, perms)
+
+  let needRedirect = false
+  let redirectTo = targetPath
+  if (curAppKey && !hasAppPermission(perms, curAppKey)) {
+    // 当前 app 已越权 → 跳转
+    needRedirect = true
+  } else if (curAppKey && hasAppPermission(perms, curAppKey)) {
+    // 当前 app 仍有权限：校验当前叶子页签是否还在新菜单树中
+    if (!matchMenuKey(nextMenus, path)) {
+      // 当前叶子菜单已下架 → 跳到该 app 的首个可见叶子
+      const group = nextMenus.find((m) => m.appKey === curAppKey)
+      const firstLeaf = firstLeafPathOf(group)
+      needRedirect = true
+      redirectTo = firstLeaf || targetPath
+    }
+  } else {
+    // 路由不在任何已知顶级 app 下（理论上不应出现，兜底校正）
+    needRedirect = true
   }
-  syncTabs()
+
+  if (needRedirect && redirectTo && redirectTo !== path) {
+    // 使用 replace 语义，避免在历史栈留下无效旧路径
+    router.replace(redirectTo)
+  } else {
+    // 未跳转：主动同步一次高亮与页签（tabs 已 reset，需按当前路由重建）
+    syncTabs()
+  }
+}
+
+/** 从路由路径提取顶级 appKey（与 MicroContainer 一致：/dashboard、/doc、/sys、/profile、/qa） */
+function parseAppKeyFromPath(fullPath: string): string | null {
+  const p = fullPath.replace(/^#/, '')
+  const map: Array<[string, string]> = [
+    ['/dashboard', 'dashboard'],
+    ['/doc', 'doc'],
+    ['/sys', 'sys'],
+    ['/profile', 'profile'],
+    ['/qa', 'qa'],
+  ]
+  for (const [prefix, key] of map) {
+    if (p === prefix || p === prefix + '/' || p.startsWith(prefix + '/')) return key
+  }
+  if (p === '/' || p === '') return 'dashboard'
+  return null
+}
+
+/** 从菜单组中取首个可见叶子路径（用于「有权限但当前叶子被下架」时的回退目标） */
+function firstLeafPathOf(group: MenuItem | undefined): string | undefined {
+  if (!group) return undefined
+  if (group.path) return group.path
+  return group.children?.[0]?.path
+}
+
+/**
+ * 在新菜单树中挑选第一个有权限的顶级组的首页路径：
+ * - 优先级按 menuConfig 固定顺序：dashboard → doc → qa → profile → sys
+ * - 取该组的 path 或首个 children 的 path
+ */
+function pickFirstAccessibleAppPath(list: MenuItem[], perms: string[]): string {
+  const order: AppKey[] = ['dashboard', 'doc', 'qa', 'profile', 'sys']
+  for (const key of order) {
+    const group = list.find((m) => m.appKey === key)
+    if (!group) continue
+    if (key === 'dashboard' || hasAppPermission(perms, key)) {
+      const p = firstLeafPathOf(group)
+      if (p) return p
+    }
+  }
+  // 兜底：根路径（始终可访问）
+  return '/'
 }
 
 /** 点击通知项：若携带业务链接则跳转（基座直接 router.push，子应用通过 MicroMsgType 转发） */

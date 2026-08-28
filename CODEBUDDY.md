@@ -121,9 +121,9 @@ packages/
 
 顶部导航栏下方（`TabsView`，由 `MainLayout` 渲染）提供页签栏，对应左侧菜单的「页面级」导航：
 
-- **状态管理**：`apps/main-app/src/store/tabs.ts` 的 `useTabsStore`（Pinia），`tabs: TabItem[]` + `activePath`；`addTab` 按 `path` 去重（重复仅置激活），`closeTab` / `closeOthers` / `closeAll` / `reset` 处理关闭；首页（`/`，key `dashboard-overview`）设为 `affix` 常驻、**不可关闭**。
+- **状态管理**：`apps/main-app/src/store/tabs.ts` 的 `useTabsStore`（Pinia），`tabs: TabItem[]` + `activePath`；`addTab` 按 `path` 去重（重复仅置激活），`closeTab` / `closeOthers` / `closeAll` / `reset` 处理关闭；**无常驻/兜底页签**——页签完全由「当前角色菜单树 + 路由」驱动（`MainLayout.syncTabs`，访问到菜单叶子页面才生成）；关闭最后一个页签时保持当前页面不动，无默认跳转。
 - **UI 组件**：`apps/main-app/src/components/TabsView.vue`，含横向滚动容器 + 左右滚动箭头（溢出时显示）+ 激活项自动滚入可视区。
-- **右键上下文菜单**：基于 `el-dropdown trigger="contextmenu"`，提供「关闭自己」「关闭其他」「关闭全部」三项；常驻首页在「关闭自己」时禁用。
+- **右键上下文菜单**：基于 `el-dropdown trigger="contextmenu"`，提供「关闭自己」「关闭其他」「关闭全部」三项；所有页签均可关闭。
 - **自动新增与高亮**：`MainLayout` 用 `watch(route.fullPath, syncTabs, { immediate: true })` 监听路由，按 `matchMenuKey` 找到当前菜单项自动 `addTab`，并 `setActive` 同步高亮；点击页签 `router.push(tab.path)` 切换。
 - **生命周期**：`handleLogout` 与 `handleSwitchAccount` 调用 `tabsStore.reset()` 清理越权页签后重新 `syncTabs()`。
 - 该栏仅基座 `MainLayout` 渲染（子应用独立运行不显示）。页签对应「基座级页面」（菜单叶子项）；子应用 **内部** 路由切换（iframe 隔离）不会新增基座页签。

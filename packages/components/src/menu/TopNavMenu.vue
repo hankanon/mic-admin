@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
-import { type MenuItem, stripAppPrefix } from './config'
+import { type MenuItem, stripAppPrefix, matchMenuKey } from './config'
 
 const props = withDefaults(
   defineProps<{
@@ -22,7 +22,7 @@ function resolveIcon(name?: string) {
   return iconComponents[name]
 }
 
-/** 判断某顶级菜单项是否为当前激活（路由落在其路径或子项范围内） */
+/** 判断某顶级菜单项是否为当前激活（路由落在其路径、子项或子页范围内） */
 function isTopActive(item: MenuItem): boolean {
   const full = route.fullPath.replace(/^#/, '')
   if (item.path) {
@@ -30,9 +30,17 @@ function isTopActive(item: MenuItem): boolean {
     const target = stripAppPrefix(item.path)
     return cur === target || cur.startsWith(target + '/')
   }
-  if (item.appKey) return full.startsWith('/' + item.appKey)
-  // 无 path/appKey 的项（如首页 path:'/'）特殊处理
-  if (item.key === 'home') return full === '/' || full === ''
+  if (item.appKey) {
+    // dashboard 顶级组的「数据总览」叶子 path='/'：必须先单独命中 '/'，
+    // 否则 stripAppPrefix('/') -> '/'，与 child path 逻辑也能命中，但 'appKey 兜底'会误把 '/doc' 也归到 dashboard
+    if (item.appKey === 'dashboard') {
+      if (full === '/' || full === '') return true
+      return full.startsWith('/dashboard') && !full.startsWith('/doc') && !full.startsWith('/sys')
+    }
+    if (full.startsWith('/' + item.appKey)) return true
+  }
+  // 兜底：递归检查 children —— 若当前路由能匹配到任一子菜单，则顶级组激活
+  if (item.children?.length && matchMenuKey(item.children, full)) return true
   return false
 }
 
