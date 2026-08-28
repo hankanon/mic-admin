@@ -134,4 +134,11 @@ export function createRequest(options?: RequestOptions): HttpClient {
   return new HttpClient(options)
 }
 
+/**
+ * 判断错误是否为请求取消（axios isCancel）。
+ * 请求层对相同 key 的在途请求做去重（addPending 会 abort 旧请求），
+ * 被取代的请求以 CanceledError 拒绝，调用方需用此工具区分「主动取消」与「真实失败」。
+ */
+export const isCancel = axios.isCancel
+
 export default request

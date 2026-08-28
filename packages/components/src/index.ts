@@ -28,6 +28,13 @@ export {
   type AppKey,
 } from './menu/config'
 
+export {
+  permissionDirective,
+  installPermission,
+  type PermissionValue,
+} from './permission/directive'
+export { usePermission } from './permission/usePermission'
+
 export { useGuide, type GuideOptions } from './guide/useGuide'
 export { defaultGuideSteps, type GuideStep } from './guide/steps'
 export { default as NotificationBell } from './notification/NotificationBell.vue'

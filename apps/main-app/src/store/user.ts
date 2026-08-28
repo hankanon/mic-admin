@@ -23,6 +23,8 @@ interface LoginResponse {
     currentRoleId: number | null
     permissions: string[]
     menus: AuthMenuItem[]
+    /** 按钮级权限点集合 */
+    buttons: string[]
   }
 }
 
@@ -30,6 +32,8 @@ interface LoginResponse {
 interface RoleDataResponse {
   permissions: string[]
   menus: AuthMenuItem[]
+  /** 按钮级权限点集合 */
+  buttons: string[]
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -59,6 +63,7 @@ export const useUserStore = defineStore('user', () => {
       currentRoleId: user.currentRoleId,
       permissions: user.permissions,
       menus: user.menus,
+      buttons: user.buttons ?? [],
     }
     setToken(nextToken)
     setUserInfo(info)
@@ -81,6 +86,7 @@ export const useUserStore = defineStore('user', () => {
       currentRoleId: roleId,
       permissions: res.data.permissions,
       menus: res.data.menus,
+      buttons: res.data.buttons ?? [],
     }
     setUserInfo(next)
     userInfo.value = next

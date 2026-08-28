@@ -35,6 +35,17 @@ export interface Role {
   updatedAt: string
 }
 
+/** 菜单可授权的按钮权限点声明 */
+export interface MenuPermissionOption {
+  /** 权限点标识，如 sys:user:create */
+  code: string
+  /** 中文说明，如 新增人员 */
+  label: string
+}
+
+/** 菜单 id → 该菜单下已授权的按钮权限点集合（角色授权提交/回显用） */
+export type MenuPermissionMap = Record<number, string[]>
+
 export type UserStatus = 'active' | 'disabled'
 
 export interface User {

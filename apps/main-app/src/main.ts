@@ -7,6 +7,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import microApp from '@micro-zoe/micro-app'
 import '@mic/components/theme'
 import { initTheme } from '@mic/utils'
+import { installPermission } from '@mic/components'
 
 import App from './App.vue'
 import router from './router'
@@ -24,6 +25,8 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 app.use(ElementPlus)
+// 注册按钮级权限指令 v-permission
+installPermission(app)
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component as any)

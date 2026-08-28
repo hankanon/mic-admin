@@ -40,13 +40,15 @@ export interface AuthMenuItem {
   children?: AuthMenuItem[]
 }
 
-/** 角色权限数据：应用权限 + 菜单树 */
+/** 角色权限数据：应用权限 + 菜单树 + 按钮权限点 */
 export interface RoleData {
   permissions: string[]
   menus: AuthMenuItem[]
+  /** 按钮级权限点集合（聚合自 role_menus.permissions） */
+  buttons: string[]
 }
 
-/** 登录返回：token + 用户信息（含当前角色权限与菜单） */
+/** 登录返回：token + 用户信息（含当前角色权限、菜单与按钮权限点） */
 export interface LoginResult {
   token: string
   user: {
@@ -57,6 +59,8 @@ export interface LoginResult {
     currentRoleId: number | null
     permissions: string[]
     menus: AuthMenuItem[]
+    /** 按钮级权限点集合 */
+    buttons: string[]
   }
 }
 
@@ -134,7 +138,7 @@ export class UserService {
       throw new ApiError('该账号未绑定角色，请联系管理员', 40300)
     }
     const currentRoleId = roles[0].id
-    const { permissions, menus } = await this.buildRoleData(currentRoleId)
+    const { permissions, menus, buttons } = await this.buildRoleData(currentRoleId)
     return {
       token: `mock-token-${row.id}-${Date.now()}`,
       user: {
@@ -145,6 +149,7 @@ export class UserService {
         currentRoleId,
         permissions,
         menus,
+        buttons,
       },
     }
   }
@@ -162,6 +167,7 @@ export class UserService {
    * 构建角色权限数据：
    * - permissions：role_apps 中的应用 key 列表（前端按应用级权限做路由守卫）
    * - menus：role_menus 关联且可见的菜单，按 parent_id 组装为树
+   * - buttons：role_menus.permissions 聚合出的按钮级权限点（去重、去空）
    */
   private async buildRoleData(roleId: number): Promise<RoleData> {
     const [appRows] = await this.pool.query<RowDataPacket[]>(
@@ -171,13 +177,26 @@ export class UserService {
     const permissions = appRows.map((r) => r.app_key as string)
 
     const [menuRows] = await this.pool.query<RowDataPacket[]>(
-      'SELECT m.`id`, m.`app_key`, m.`parent_id`, m.`title`, m.`icon`, m.`path` ' +
+      'SELECT m.`id`, m.`app_key`, m.`parent_id`, m.`title`, m.`icon`, m.`path`, ' +
+        'rm.`permissions` AS `role_permissions` ' +
         'FROM `menus` m JOIN `role_menus` rm ON rm.`menu_id` = m.`id` ' +
         'WHERE rm.`role_id` = ? AND m.`visible` = 1 ORDER BY m.`id`',
       [roleId],
     )
     const menus = this.buildMenuTree(menuRows)
-    return { permissions, menus }
+
+    const buttons = new Set<string>()
+    menuRows.forEach((r) => {
+      const raw = r.role_permissions as string | null
+      if (!raw) return
+      raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((p) => buttons.add(p))
+    })
+
+    return { permissions, menus, buttons: [...buttons] }
   }
 
   /** 扁平菜单行 → 树：顶级项 key 取 appKey（与前端路由/高亮逻辑对齐），子项 key 用 menu-{id} */

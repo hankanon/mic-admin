@@ -62,6 +62,32 @@ export function hasAppPermission(permissions: string[] | undefined, appKey: stri
   return permissions.some((p) => p.startsWith(`${appKey}:`))
 }
 
+/**
+ * 按钮级权限判断。
+ *
+ * @param buttons 当前角色的按钮权限点集合（登录/切换角色时由后端下发）
+ * @param required 所需权限点，传数组时表示「需全部具备」
+ * @param opts.permissions 应用级权限集合，用于超级管理员（`*`）直通与应用级兜底
+ *
+ * 判定顺序：
+ * 1. 超级管理员（应用级或按钮级含 `*`）直接放行；
+ * 2. 未声明任何权限点（空数组）视为无需鉴权，放行；
+ * 3. 其余情况要求 required 全部命中 buttons。
+ *
+ * 用 every 而非 some：多权限点场景（如"删除需同时具备 delete 与 export"）要求全部满足，
+ * 单点场景退化为普通包含判断。
+ */
+export function hasButtonPermission(
+  buttons: string[] | undefined,
+  required: string | string[],
+  opts: { permissions?: string[] } = {},
+): boolean {
+  const list = Array.isArray(required) ? required : [required]
+  if (opts.permissions?.includes('*') || buttons?.includes('*')) return true
+  if (list.length === 0) return true
+  return list.every((p) => !!buttons?.includes(p))
+}
+
 /** 校验账号（用户名 + 密码），成功返回预设账号，失败返回 null */
 export function findAccount(username: string, password: string): AccountPreset | null {
   const acc = ACCOUNT_PRESETS[username]

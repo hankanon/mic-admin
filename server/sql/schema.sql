@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `role_apps` (
 CREATE TABLE IF NOT EXISTS `role_menus` (
   `role_id` INT UNSIGNED NOT NULL,
   `menu_id` INT UNSIGNED NOT NULL,
+  `permissions` VARCHAR(255) DEFAULT NULL COMMENT '按钮级权限点，逗号分隔，如 sys:user:create,sys:user:edit',
   PRIMARY KEY (`role_id`, `menu_id`),
   KEY `idx_role_menus_menu` (`menu_id`),
   CONSTRAINT `fk_role_menus_role`

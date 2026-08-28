@@ -100,6 +100,17 @@ VALUES
   -- 系统管理员：仅 sys
   (3, 5010000), (3, 5010100), (3, 5010200), (3, 5010300);
 
+-- -------------------- 角色-按钮权限（按钮级授权） --------------------
+-- 仅对已关联的 (role_id, menu_id) 生效；权限点常量见 server/src/common/permissions.ts
+--   超级管理员 / 系统管理员：授予 sys 三个管理页面的全部写操作
+--   文档编辑：仅 doc 菜单，无 sys 按钮权限（用于验证按钮隐藏）
+UPDATE `role_menus` SET `permissions` = 'sys:menu:create,sys:menu:update,sys:menu:remove'
+WHERE `role_id` IN (1, 3) AND `menu_id` = 5010100;
+UPDATE `role_menus` SET `permissions` = 'sys:role:create,sys:role:update,sys:role:remove'
+WHERE `role_id` IN (1, 3) AND `menu_id` = 5010200;
+UPDATE `role_menus` SET `permissions` = 'sys:user:create,sys:user:update,sys:user:remove'
+WHERE `role_id` IN (1, 3) AND `menu_id` = 5010300;
+
 -- -------------------- 用户-角色 --------------------
 INSERT IGNORE INTO `user_roles` (`user_id`, `role_id`)
 VALUES

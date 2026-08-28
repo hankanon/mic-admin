@@ -37,6 +37,8 @@ export interface UserInfo {
   permissions?: string[]
   /** 当前角色的菜单树（后端登录/切换角色返回） */
   menus?: AuthMenuItem[]
+  /** 按钮级权限点集合（后端登录/切换角色返回，供 v-permission 消费） */
+  buttons?: string[]
 }
 
 /** 写入 token（默认 7 天过期） */

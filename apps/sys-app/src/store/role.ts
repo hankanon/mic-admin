@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { isCancel } from '@mic/utils'
 import { roleApi } from '../api/role'
 import { menuApi } from '../api/menu'
 import type { AppKey, MenuNode, RolePayload, RoleView } from '../types'
@@ -37,6 +38,10 @@ export const useRoleStore = defineStore('sys-role', () => {
   /**
    * 按所选子应用加载菜单树（多应用时合并，父子结构保留）。
    * 空数组时清空。
+   *
+   * 注意：同一 key 的并发请求会被请求层去重 abort（openEdit 显式加载与
+   * appKeys watch 触发加载会同时发生），被取消的请求属预期行为，数据由
+   * 后发请求接管，这里静默忽略，避免向上抛出 CanceledError 造成未处理异常。
    */
   async function fetchMenuTree(appKeys: AppKey[]): Promise<void> {
     if (!appKeys.length) {
@@ -47,6 +52,9 @@ export const useRoleStore = defineStore('sys-role', () => {
     try {
       const trees = await Promise.all(appKeys.map((k) => menuApi.tree(k)))
       menuTree.value = trees.flat()
+    } catch (e) {
+      if (isCancel(e)) return
+      throw e
     } finally {
       menuTreeLoading.value = false
     }

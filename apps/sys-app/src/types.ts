@@ -21,6 +21,15 @@ export interface MenuNode {
 
 export type MenuPayload = Omit<MenuNode, 'id' | 'createdAt' | 'updatedAt' | 'children'>
 
+/** 菜单 id（字符串键，JSON 序列化后为字符串）→ 该菜单下已授权的按钮权限点 */
+export type MenuPermissionMap = Record<string | number, string[]>
+
+/** 单个按钮权限点选项 */
+export interface PermissionOption {
+  code: string
+  label: string
+}
+
 export interface RoleView {
   id: number
   name: string
@@ -32,11 +41,15 @@ export interface RoleView {
   menuTitles: string[]
   /** 关联菜单节点（含层级信息，便于按子应用树形展示） */
   menus: { id: number; title: string; parentId: number; appKey: AppKey }[]
+  /** 菜单 id → 该菜单下已授权的按钮权限点（按钮级授权回显） */
+  menuPermissions?: MenuPermissionMap
   createdAt?: string
   updatedAt?: string
 }
 
-export type RolePayload = Omit<RoleView, 'id' | 'menuTitles' | 'menus' | 'createdAt' | 'updatedAt'>
+export type RolePayload = Omit<RoleView, 'id' | 'menuTitles' | 'menus' | 'createdAt' | 'updatedAt'> &
+  /** 提交时必带：未授权任何按钮时传空对象以清空 */
+  { menuPermissions?: MenuPermissionMap }
 
 export interface UserView {
   id: number

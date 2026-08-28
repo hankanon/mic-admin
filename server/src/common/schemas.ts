@@ -46,6 +46,8 @@ export const roleCreateSchema = z.object({
     .regex(/^[A-Za-z0-9_-]+$/, '标识只能包含字母、数字、下划线和短横线'),
   appKeys: z.array(appKeyEnum).default([]),
   menuIds: z.array(z.number().int().positive()).default([]),
+  /** 菜单 id（字符串键，JSON 序列化后为字符串）→ 该菜单下已授权的按钮权限点 */
+  menuPermissions: z.record(z.array(z.string().min(1).max(50))).default({}),
   description: z.string().max(200).optional(),
 })
 

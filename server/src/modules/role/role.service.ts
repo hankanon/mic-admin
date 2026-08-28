@@ -2,8 +2,10 @@ import { Inject, Injectable } from '@nestjs/common'
 import type { Pool } from 'mysql2/promise'
 import type { RowDataPacket, ResultSetHeader } from 'mysql2'
 import { ApiError } from '../../common/errors'
-import type { AppKey, Role } from '../../common/types'
+import type { AppKey, Role, MenuPermissionMap } from '../../common/types'
 import type { RoleCreateInput, RoleUpdateInput } from '../../common/schemas'
+import { PermissionService } from '../../common/permission.service'
+import { ALL_PERMISSION_CODES } from '../../common/permissions'
 
 interface RoleRow extends RowDataPacket {
   id: number
@@ -19,6 +21,8 @@ export interface RoleView extends Role {
   menuTitles: string[]
   /** 关联菜单节点（含层级信息），便于前端按子应用以树结构展示 */
   menus: { id: number; title: string; parentId: number; appKey: AppKey }[]
+  /** 菜单 id → 该菜单下已授权的按钮权限点（按钮级授权回显） */
+  menuPermissions: MenuPermissionMap
 }
 
 function mapRole(r: RoleRow): Role {
@@ -36,7 +40,10 @@ function mapRole(r: RoleRow): Role {
 
 @Injectable()
 export class RoleService {
-  constructor(@Inject('MYSQL_POOL') private readonly pool: Pool) {}
+  constructor(
+    @Inject('MYSQL_POOL') private readonly pool: Pool,
+    private readonly permissionService: PermissionService,
+  ) {}
 
   private async findRow(id: number): Promise<RoleRow | undefined> {
     const [rows] = await this.pool.query<RoleRow[]>(
@@ -91,6 +98,50 @@ export class RoleService {
     }))
   }
 
+  /** 读取角色在各菜单下已授权的按钮权限点（回显用） */
+  private async loadMenuPermissions(roleId: number): Promise<MenuPermissionMap> {
+    const [rows] = await this.pool.query<RowDataPacket[]>(
+      'SELECT `menu_id`, `permissions` FROM `role_menus` WHERE `role_id` = ?',
+      [roleId],
+    )
+    const map: MenuPermissionMap = {}
+    rows.forEach((r) => {
+      const raw = r.permissions as string | null
+      if (!raw) return
+      const codes = raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (codes.length) map[r.menu_id as number] = codes
+    })
+    return map
+  }
+
+  /**
+   * 写入菜单 → 按钮权限点映射。
+   * 仅落库合法权限点（ALL_PERMISSION_CODES 白名单），非白名单项静默丢弃，
+   * 防止前端传入任意字符串污染权限集合。
+   */
+  private async saveMenuPermissions(
+    roleId: number,
+    menuPermissions: Record<string | number, string[]>,
+  ): Promise<void> {
+    const entries = Object.entries(menuPermissions ?? {})
+    if (!entries.length) return
+    const allowed = new Set(ALL_PERMISSION_CODES)
+    for (const [menuId, codes] of entries) {
+      const id = Number(menuId)
+      if (!Number.isInteger(id) || id <= 0) continue
+      const clean = [...new Set((codes ?? []).filter((c) => allowed.has(c)))]
+      await this.pool.query(
+        'UPDATE `role_menus` SET `permissions` = ? WHERE `role_id` = ? AND `menu_id` = ?',
+        [clean.length ? clean.join(',') : null, roleId, id],
+      )
+    }
+    // 授权变更 → 失效按钮权限缓存，使受影响用户即时生效
+    this.permissionService.invalidate()
+  }
+
   private async toView(roleId: number): Promise<RoleView> {
     const row = await this.findRow(roleId)
     if (!row) throw new ApiError('角色不存在', 40400)
@@ -98,7 +149,8 @@ export class RoleService {
     const menuIds = await this.loadMenuIds(roleId)
     const menuTitles = await this.loadMenuTitles(menuIds)
     const menus = await this.loadMenuNodes(menuIds)
-    return { ...mapRole(row), appKeys, menuIds, menuTitles, menus }
+    const menuPermissions = await this.loadMenuPermissions(roleId)
+    return { ...mapRole(row), appKeys, menuIds, menuTitles, menus, menuPermissions }
   }
 
   async list(): Promise<RoleView[]> {
@@ -109,7 +161,8 @@ export class RoleService {
       const menuIds = await this.loadMenuIds(r.id)
       const menuTitles = await this.loadMenuTitles(menuIds)
       const menus = await this.loadMenuNodes(menuIds)
-      result.push({ ...mapRole(r), appKeys, menuIds, menuTitles, menus })
+      const menuPermissions = await this.loadMenuPermissions(r.id)
+      result.push({ ...mapRole(r), appKeys, menuIds, menuTitles, menus, menuPermissions })
     }
     return result
   }
@@ -162,6 +215,7 @@ export class RoleService {
         input.menuIds.flatMap((m) => [roleId, m]),
       )
     }
+    await this.saveMenuPermissions(roleId, input.menuPermissions ?? {})
     return this.toView(roleId)
   }
 
@@ -223,6 +277,11 @@ export class RoleService {
           input.menuIds.flatMap((m) => [id, m]),
         )
       }
+      // 重设菜单后按新提交的按钮权限点回写（未提交则清空该角色的按钮权限）
+      await this.saveMenuPermissions(id, input.menuPermissions ?? {})
+    } else if (input.menuPermissions !== undefined) {
+      // 仅更新按钮权限点、不动菜单关联
+      await this.saveMenuPermissions(id, input.menuPermissions)
     }
     return this.toView(id)
   }

@@ -4,6 +4,7 @@ import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { PageCard } from '@mic/components'
+import { USER_PERMISSIONS } from '@mic/utils'
 import { userApi } from '../api/user'
 import { roleApi } from '../api/role'
 import type { RoleView, UserPayload, UserView } from '../types'
@@ -164,7 +165,14 @@ async function removeUser(row: UserView) {
   <div>
     <PageCard title="人员管理">
       <template #extra>
-        <el-button type="primary" size="small" @click="openCreate">新增人员</el-button>
+        <el-button
+          v-permission="USER_PERMISSIONS.create"
+          type="primary"
+          size="small"
+          @click="openCreate"
+        >
+          新增人员
+        </el-button>
       </template>
 
       <!-- 查询条件 -->
@@ -225,8 +233,24 @@ async function removeUser(row: UserView) {
         </el-table-column>
         <el-table-column label="操作" width="140" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="danger" size="small" @click="removeUser(row)">删除</el-button>
+            <el-button
+              v-permission="USER_PERMISSIONS.update"
+              link
+              type="primary"
+              size="small"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-permission="USER_PERMISSIONS.remove"
+              link
+              type="danger"
+              size="small"
+              @click="removeUser(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>

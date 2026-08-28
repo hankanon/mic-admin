@@ -4,6 +4,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { PageCard } from '@mic/components'
+import { MENU_PERMISSIONS } from '@mic/utils'
 import { menuApi } from '../api/menu'
 import type { AppKey, MenuNode, MenuPayload } from '../types'
 
@@ -263,7 +264,14 @@ async function move(row: MenuNode, dir: -1 | 1) {
   <div>
     <PageCard title="菜单管理">
       <template #extra>
-        <el-button type="primary" size="small" @click="openCreate(0)">新增菜单</el-button>
+        <el-button
+          v-permission="MENU_PERMISSIONS.create"
+          type="primary"
+          size="small"
+          @click="openCreate(0)"
+        >
+          新增菜单
+        </el-button>
       </template>
 
       <!-- 查询条件 -->
@@ -342,11 +350,51 @@ async function move(row: MenuNode, dir: -1 | 1) {
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" size="small" @click="openCreate(row.id)">新增子级</el-button>
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button link type="primary" size="small" @click="move(row, -1)">上移</el-button>
-            <el-button link type="primary" size="small" @click="move(row, 1)">下移</el-button>
-            <el-button link type="danger" size="small" @click="removeMenu(row)">删除</el-button>
+            <el-button
+              v-permission="MENU_PERMISSIONS.create"
+              link
+              type="primary"
+              size="small"
+              @click="openCreate(row.id)"
+            >
+              新增子级
+            </el-button>
+            <el-button
+              v-permission="MENU_PERMISSIONS.update"
+              link
+              type="primary"
+              size="small"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-permission="MENU_PERMISSIONS.update"
+              link
+              type="primary"
+              size="small"
+              @click="move(row, -1)"
+            >
+              上移
+            </el-button>
+            <el-button
+              v-permission="MENU_PERMISSIONS.update"
+              link
+              type="primary"
+              size="small"
+              @click="move(row, 1)"
+            >
+              下移
+            </el-button>
+            <el-button
+              v-permission="MENU_PERMISSIONS.remove"
+              link
+              type="danger"
+              size="small"
+              @click="removeMenu(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>

@@ -4,8 +4,42 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { PageCard, menuConfig } from '@mic/components'
+import { MENU_PERMISSIONS, ROLE_PERMISSIONS, USER_PERMISSIONS } from '@mic/utils'
 import { useRoleStore } from '../store/role'
-import type { AppKey, RolePayload, RoleView } from '../types'
+import type {
+  AppKey,
+  MenuPermissionMap,
+  PermissionOption,
+  RolePayload,
+  RoleView,
+} from '../types'
+
+/**
+ * 菜单可授权的按钮权限点：菜单 path → 按钮点列表。
+ * 与后端 server/src/common/permissions.ts 的 MENU_PERMISSION_OPTIONS 一一对应。
+ */
+const MENU_BUTTON_OPTIONS: Record<string, PermissionOption[]> = {
+  '/sys/menu': [
+    { code: MENU_PERMISSIONS.create, label: '新增' },
+    { code: MENU_PERMISSIONS.update, label: '编辑' },
+    { code: MENU_PERMISSIONS.remove, label: '删除' },
+  ],
+  '/sys/role': [
+    { code: ROLE_PERMISSIONS.create, label: '新增' },
+    { code: ROLE_PERMISSIONS.update, label: '编辑' },
+    { code: ROLE_PERMISSIONS.remove, label: '删除' },
+  ],
+  '/sys/user': [
+    { code: USER_PERMISSIONS.create, label: '新增' },
+    { code: USER_PERMISSIONS.update, label: '编辑' },
+    { code: USER_PERMISSIONS.remove, label: '删除' },
+  ],
+}
+
+/** 取该菜单节点可授权的按钮点（无则返回空） */
+function buttonOptionsOf(node: { path?: string }): PermissionOption[] {
+  return node.path ? MENU_BUTTON_OPTIONS[node.path] ?? [] : []
+}
 
 const roleStore = useRoleStore()
 
@@ -61,8 +95,59 @@ const form = reactive<RolePayload>({
   code: '',
   appKeys: [],
   menuIds: [],
+  menuPermissions: {},
   description: '',
 })
+
+/** 当前编辑角色在各菜单下勾选的按钮权限点 */
+const checkedButtons = ref<MenuPermissionMap>({})
+
+/** 某菜单的按钮权限点是否已被勾选 */
+function isButtonChecked(menuId: number, code: string): boolean {
+  return !!checkedButtons.value[menuId]?.includes(code)
+}
+
+/** 勾选/取消某菜单下的一个按钮权限点 */
+function toggleButton(menuId: number, code: string, checked: boolean): void {
+  const cur = new Set(checkedButtons.value[menuId] ?? [])
+  if (checked) cur.add(code)
+  else cur.delete(code)
+  if (cur.size) checkedButtons.value[menuId] = [...cur]
+  else delete checkedButtons.value[menuId]
+}
+
+/** 全选/取消某菜单下的全部按钮权限点 */
+function toggleAllButtons(menuId: number, path: string | undefined, checked: boolean): void {
+  const opts = buttonOptionsOf({ path })
+  if (!opts.length) return
+  if (checked) checkedButtons.value[menuId] = opts.map((o) => o.code)
+  else delete checkedButtons.value[menuId]
+}
+
+/** 该菜单的按钮权限点是否全部勾选（用于全选复选框的 indeterminate 态） */
+function buttonCheckState(menuId: number, path: string | undefined): {
+  all: boolean
+  indeterminate: boolean
+} {
+  const opts = buttonOptionsOf({ path })
+  if (!opts.length) return { all: false, indeterminate: false }
+  const cur = checkedButtons.value[menuId] ?? []
+  const hit = opts.filter((o) => cur.includes(o.code)).length
+  return { all: hit === opts.length, indeterminate: hit > 0 && hit < opts.length }
+}
+
+/**
+ * 提交时只保留「已勾选菜单」的按钮权限点：
+ * 未勾选菜单若残留按钮点会导致权限集合中出现无入口的孤儿权限。
+ */
+function collectMenuPermissions(menuIds: number[]): MenuPermissionMap {
+  const allowed = new Set(menuIds)
+  const out: MenuPermissionMap = {}
+  for (const [id, codes] of Object.entries(checkedButtons.value)) {
+    if (allowed.has(Number(id)) && codes?.length) out[id] = codes
+  }
+  return out
+}
 
 const dialogTitle = computed(() => (editingId.value ? '编辑角色' : '新增角色'))
 
@@ -93,14 +178,27 @@ watch(
   },
 )
 
+/** 菜单树加载序号：拦截被取代的旧加载，避免其完成后覆盖新状态 */
+let menuTreeSeq = 0
+
 async function loadMenuTree(keys: AppKey[]) {
+  const seq = ++menuTreeSeq
   await roleStore.fetchMenuTree(keys)
+  if (seq !== menuTreeSeq) return
   await nextTick()
   treeRef.value?.setCheckedKeys(form.menuIds)
 }
 
 function resetForm() {
-  Object.assign(form, { name: '', code: '', appKeys: [], menuIds: [], description: '' })
+  Object.assign(form, {
+    name: '',
+    code: '',
+    appKeys: [],
+    menuIds: [],
+    menuPermissions: {},
+    description: '',
+  })
+  checkedButtons.value = {}
   roleStore.menuTree = []
 }
 
@@ -118,8 +216,13 @@ async function openEdit(row: RoleView) {
     code: row.code,
     appKeys: [...row.appKeys],
     menuIds: [...row.menuIds],
+    menuPermissions: { ...(row.menuPermissions ?? {}) },
     description: row.description ?? '',
   })
+  // 回显按钮权限点（深拷贝，避免编辑中途取消污染原数据）
+  checkedButtons.value = Object.fromEntries(
+    Object.entries(row.menuPermissions ?? {}).map(([k, v]) => [k, [...v]]),
+  )
   dialogVisible.value = true
   await loadMenuTree(form.appKeys)
   nextTick(() => formRef.value?.clearValidate())
@@ -135,6 +238,7 @@ async function submit() {
       code: form.code,
       appKeys: form.appKeys,
       menuIds,
+      menuPermissions: collectMenuPermissions(menuIds),
       description: form.description || undefined,
     }
     try {
@@ -226,6 +330,15 @@ function roleMenuGroups(
   return groups
 }
 
+/** 详情展示：把 menuPermissions 拍平为「菜单名 · 按钮」标签 */
+function buttonPermissionTags(role: RoleView): string[] {
+  const titleById = new Map((role.menus || []).map((m) => [m.id, m.title]))
+  return Object.entries(role.menuPermissions ?? {}).flatMap(([menuId, codes]) => {
+    const prefix = titleById.get(Number(menuId))
+    return (codes ?? []).map((c) => (prefix ? `${prefix} · ${c}` : c))
+  })
+}
+
 /** 先序拍平树，便于模板按层级缩进渲染 */
 function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
   const out: MenuTreeNode[] = []
@@ -246,7 +359,14 @@ function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
         <el-button size="small" :loading="roleStore.loading" @click="roleStore.fetchRoles()">
           刷新
         </el-button>
-        <el-button type="primary" size="small" @click="openCreate">新增角色</el-button>
+        <el-button
+          v-permission="ROLE_PERMISSIONS.create"
+          type="primary"
+          size="small"
+          @click="openCreate"
+        >
+          新增角色
+        </el-button>
       </template>
 
       <!-- 查询条件 -->
@@ -310,8 +430,17 @@ function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="openDetail(row)">查看</el-button>
-            <el-button link type="primary" size="small" @click="openEdit(row)">编辑</el-button>
             <el-button
+              v-permission="ROLE_PERMISSIONS.update"
+              link
+              type="primary"
+              size="small"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              v-permission="ROLE_PERMISSIONS.remove"
               link
               type="danger"
               size="small"
@@ -386,10 +515,35 @@ function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
                 >
                   {{ appLabel(data.appKey) }}
                 </el-tag>
+                <!-- 按钮级权限：该菜单声明了可授权按钮时，展开为操作勾选区 -->
+                <span
+                  v-if="buttonOptionsOf(data).length"
+                  class="btn-perm"
+                  @click.stop
+                >
+                  <el-checkbox
+                    :model-value="buttonCheckState(data.id, data.path).all"
+                    :indeterminate="buttonCheckState(data.id, data.path).indeterminate"
+                    size="small"
+                    @change="(v: boolean) => toggleAllButtons(data.id, data.path, v)"
+                  >
+                    全选
+                  </el-checkbox>
+                  <el-checkbox
+                    v-for="opt in buttonOptionsOf(data)"
+                    :key="opt.code"
+                    :model-value="isButtonChecked(data.id, opt.code)"
+                    size="small"
+                    @change="(v: boolean) => toggleButton(data.id, opt.code, v)"
+                  >
+                    {{ opt.label }}
+                  </el-checkbox>
+                </span>
               </template>
             </el-tree>
             <div v-if="form.appKeys.length" class="form-tip">
-              勾选该角色可访问的菜单（按所选子应用过滤，勾选父级自动包含其下子菜单）
+              勾选该角色可访问的菜单（按所选子应用过滤，勾选父级自动包含其下子菜单）；
+              带「全选 / 新增 / 编辑 / 删除」的菜单可进一步授权按钮级操作权限
             </div>
           </div>
         </el-form-item>
@@ -434,6 +588,21 @@ function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
                 </div>
               </div>
             </div>
+          </div>
+          <span v-else class="cell-empty">-</span>
+        </el-descriptions-item>
+        <el-descriptions-item label="按钮权限">
+          <div v-if="detail && buttonPermissionTags(detail).length" class="btn-perm-cells">
+            <el-tag
+              v-for="t in buttonPermissionTags(detail)"
+              :key="t"
+              size="small"
+              type="success"
+              effect="plain"
+              style="margin: 0 4px 4px 0"
+            >
+              {{ t }}
+            </el-tag>
           </div>
           <span v-else class="cell-empty">-</span>
         </el-descriptions-item>
@@ -511,5 +680,22 @@ function flattenMenuNodes(nodes: MenuTreeNode[]): MenuTreeNode[] {
 }
 .tree-prefix {
   color: var(--el-text-color-secondary);
+}
+/* 菜单树节点内的按钮级权限勾选区 */
+.btn-perm {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  margin-left: 12px;
+  padding-left: 10px;
+  border-left: 1px solid var(--el-border-color-lighter);
+}
+.btn-perm :deep(.el-checkbox) {
+  margin-right: 0;
+}
+.btn-perm :deep(.el-checkbox__label) {
+  padding-left: 4px;
+  font-size: 12px;
 }
 </style>

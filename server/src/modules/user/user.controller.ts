@@ -9,18 +9,16 @@ import {
   Put,
   Query,
 } from '@nestjs/common'
+import { UseGuards } from '@nestjs/common'
 import { ApiError } from '../../common/errors'
 import { UserService } from './user.service'
 import { loginSchema, userCreateSchema, userUpdateSchema } from '../../common/schemas'
+import { parseTokenUserId } from '../../common/auth-token'
+import { PermissionGuard } from '../../common/permission.guard'
+import { RequirePermission } from '../../common/permission.decorator'
+import { USER_PERMISSIONS } from '../../common/permissions'
 
-/** 从 Authorization 头解析 mock token 中的用户 id（格式：mock-token-{userId}-{ts}） */
-function parseTokenUserId(authorization?: string): number {
-  const token = (authorization || '').replace(/^Bearer\s+/i, '')
-  const matched = token.match(/^mock-token-(\d+)-\d+$/)
-  if (!matched) throw new ApiError('登录已过期，请重新登录', 40100)
-  return Number(matched[1])
-}
-
+@UseGuards(PermissionGuard)
 @Controller('api/users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
@@ -54,16 +52,19 @@ export class UserController {
   }
 
   @Post()
+  @RequirePermission(USER_PERMISSIONS.create)
   create(@Body() body: unknown) {
     return this.userService.create(userCreateSchema.parse(body))
   }
 
   @Put(':id')
+  @RequirePermission(USER_PERMISSIONS.update)
   update(@Param('id') id: string, @Body() body: unknown) {
     return this.userService.update(Number(id), userUpdateSchema.parse(body))
   }
 
   @Delete(':id')
+  @RequirePermission(USER_PERMISSIONS.remove)
   async remove(@Param('id') id: string) {
     await this.userService.remove(Number(id))
     return null

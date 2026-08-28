@@ -288,7 +288,7 @@ users ──< user_roles >── roles ──< role_apps  >── (appKey 枚举
 - **用户-角色**：多对多，一个账号可绑多角色。
 - **角色-应用权限**（`role_apps`）：应用级授权，决定能进入哪些子应用。
 - **角色-菜单权限**（`role_menus`）：菜单级授权，决定导航树的具体节点；勾选父级菜单时前端联动勾选全部子级。
-- **两级粒度**：路由可见性按应用级控制（粗），导航树按菜单级渲染（细）；按钮级权限暂未实现（预留 `menus.permission` 字段）。
+- **两级粒度**：路由可见性按应用级控制（粗），导航树按菜单级渲染（细）；按钮级（操作级）权限方案见 [BUTTON-PERMISSION-DESIGN.md](./BUTTON-PERMISSION-DESIGN.md)（复用 `menus.permission` 字段，扩展 `role_menus.permissions`）。
 
 ### 5.2 权限数据流转
 
@@ -305,7 +305,7 @@ users ──< user_roles >── roles ──< role_apps  >── (appKey 枚举
 | 路由守卫 | `beforeEach` 中 `/doc`、`/sys` 前缀校验 `hasAppPermission`；`hasAppPermission` 兼容 `'*'`、`appKey`、`appKey:action` 细粒度前缀 |
 | 菜单渲染 | 基座菜单树**完全来自后端** `userInfo.menus`（数据源单一，无本地静态菜单与后端不一致问题）；本地 `menuConfig` 仅子应用独立运行时兜底 |
 | 页签 | 切换角色后 reset，避免残留越权页签 |
-| 按钮级 | 暂未实现（规划：`v-permission` 指令 + `menus.permission` 标识） |
+| 按钮级 | 方案见 [BUTTON-PERMISSION-DESIGN.md](./BUTTON-PERMISSION-DESIGN.md)（规划：`v-permission` 指令 + `usePermission` + `menus.permission`/`role_menus.permissions` 标识 + 后端 `PermissionGuard`） |
 
 ### 5.4 后端接口鉴权
 
