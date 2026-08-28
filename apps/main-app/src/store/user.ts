@@ -10,9 +10,9 @@ import {
   logout as clearAuth,
   request,
   silentRefresh,
-  type AuthMenuItem,
   type UserInfo,
 } from '@mic/utils'
+import type { MenuItem } from '@mic/types'
 
 /** 后端登录返回结构（真实 JWT：access/refresh 令牌对） */
 interface LoginResponse {
@@ -27,7 +27,7 @@ interface LoginResponse {
     roles: { id: number; name: string; code: string }[]
     currentRoleId: number | null
     permissions: string[]
-    menus: AuthMenuItem[]
+    menus: MenuItem[]
     /** 按钮级权限点集合 */
     buttons: string[]
   }
@@ -36,7 +36,7 @@ interface LoginResponse {
 /** 角色权限数据（切换角色接口返回，另附重签的 access token） */
 interface RoleDataResponse {
   permissions: string[]
-  menus: AuthMenuItem[]
+  menus: MenuItem[]
   /** 按钮级权限点集合 */
   buttons: string[]
   accessToken: string

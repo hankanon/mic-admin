@@ -24,6 +24,7 @@ export {
   stripAppPrefix,
   matchMenuKey,
   filterMenusByPermissions,
+  assertMenuShape,
   type MenuItem,
   type AppKey,
 } from './menu/config'

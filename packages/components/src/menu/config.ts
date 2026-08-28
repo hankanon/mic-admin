@@ -1,16 +1,7 @@
 import { hasAppPermission } from '@mic/utils'
+import type { AppKey, MenuItem } from '@mic/types'
 
-export type AppKey = 'dashboard' | 'doc' | 'profile' | 'qa' | 'sys'
-
-export interface MenuItem {
-  key: string
-  title: string
-  icon?: string
-  /** 集成运行时的完整路径（含子应用前缀）；含子菜单的分组项无需 path */
-  path?: string
-  appKey?: AppKey
-  children?: MenuItem[]
-}
+export type { AppKey, MenuItem }
 
 export const menuConfig: MenuItem[] = [
   {
@@ -134,4 +125,41 @@ export function filterMenusByPermissions(
   return menus
     .filter((m) => (!m.appKey || publicApps.includes(m.appKey)) ? true : hasAppPermission(permissions, m.appKey))
     .map((m) => ({ ...m, children: m.children ? m.children.map((c) => ({ ...c })) : undefined }))
+}
+
+/**
+ * 菜单来源双源一致性约束：
+ * 集成运行时的菜单来自后端 user-server（role_menus 组装），独立运行时来自本地 menuConfig。
+ * 两源必须保持同一结构（见 @mic/types 的 MenuItem），否则会出现菜单/路由/高亮漂移。
+ * 本函数在子应用独立模式启动时校验本地 menuConfig 结构，提前暴露两源不一致。
+ */
+const VALID_APP_KEYS: AppKey[] = ['dashboard', 'doc', 'profile', 'qa', 'sys']
+
+export function assertMenuShape(list: MenuItem[], path = 'menuConfig'): void {
+  if (!Array.isArray(list)) throw new Error(`[menu] ${path} 必须是数组`)
+  list.forEach((item, i) => {
+    const where = `${path}[${i}] (key=${item?.key})`
+    if (!item || typeof item.key !== 'string' || !item.key) {
+      throw new Error(`[menu] ${where} 缺少字符串 key`)
+    }
+    if (typeof item.title !== 'string' || !item.title) {
+      throw new Error(`[menu] ${where} 缺少字符串 title`)
+    }
+    if (item.appKey !== undefined && !VALID_APP_KEYS.includes(item.appKey)) {
+      throw new Error(`[menu] ${where} 非法 appKey: ${item.appKey}`)
+    }
+    if (item.children) {
+      if (!Array.isArray(item.children)) throw new Error(`[menu] ${where} children 必须是数组`)
+      assertMenuShape(item.children, `${where}.children`)
+    }
+  })
+}
+
+/** 开发期对本地 menuConfig 做结构校验（双源一致性兜底，生产环境静默跳过） */
+if (import.meta.env?.DEV) {
+  try {
+    assertMenuShape(menuConfig)
+  } catch (e) {
+    console.error('[menu] 本地 menuConfig 结构校验失败，可能与后端菜单源不一致：', e)
+  }
 }

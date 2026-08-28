@@ -16,6 +16,7 @@
     "./micro": "./src/micro/index.ts"
   },
   "dependencies": {
+    "@mic/types": "workspace:*",
     "axios": "1.18.1",
     "mitt": "^3.0.1"
   },

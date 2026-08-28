@@ -3,8 +3,10 @@ import * as bcrypt from 'bcryptjs'
 import type { Pool } from 'mysql2/promise'
 import type { RowDataPacket, ResultSetHeader } from 'mysql2'
 import { ApiError } from '../../common/errors'
+import { buildInClause } from '../../common/db.util'
 import { AuthService } from '../auth/auth.service'
 import type { User } from '../../common/types'
+import type { AppKey, MenuItem } from '@mic/types'
 import type { UserCreateInput, UserUpdateInput, LoginInput } from '../../common/schemas'
 
 interface UserRow extends RowDataPacket {
@@ -32,20 +34,10 @@ export interface RoleBrief {
 }
 
 /** 登录态菜单节点（与前端 MenuItem 结构对齐） */
-export interface AuthMenuItem {
-  key: string
-  title: string
-  icon?: string
-  /** 完整路径（含子应用前缀）；分组型菜单无 path */
-  path?: string
-  appKey?: string
-  children?: AuthMenuItem[]
-}
-
-/** 角色权限数据：应用权限 + 菜单树 + 按钮权限点 */
+/** 角色权限数据：应用权限 + 菜单树 + 按钮权限点（菜单节点复用 @mic/types 的 MenuItem） */
 export interface RoleData {
   permissions: string[]
-  menus: AuthMenuItem[]
+  menus: MenuItem[]
   /** 按钮级权限点集合（聚合自 role_menus.permissions） */
   buttons: string[]
 }
@@ -65,7 +57,7 @@ export interface LoginResult {
     roles: RoleBrief[]
     currentRoleId: number | null
     permissions: string[]
-    menus: AuthMenuItem[]
+    menus: MenuItem[]
     /** 按钮级权限点集合 */
     buttons: string[]
   }
@@ -116,10 +108,10 @@ export class UserService {
 
   private async loadRoleNames(roleIds: number[]): Promise<string[]> {
     if (!roleIds.length) return []
-    const placeholders = roleIds.map(() => '?').join(',')
+    const { clause, params } = buildInClause(roleIds)
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      'SELECT `name` FROM `roles` WHERE `id` IN (' + placeholders + ')',
-      roleIds,
+      `SELECT \`name\` FROM \`roles\` WHERE \`id\` IN (${clause})`,
+      params,
     )
     return rows.map((r) => r.name as string)
   }
@@ -209,25 +201,34 @@ export class UserService {
   }
 
   /**
-   * 构建角色权限数据：
+   * 构建角色权限数据（一次查询合并 role_apps 与 role_menus，避免两次往返）：
    * - permissions：role_apps 中的应用 key 列表（前端按应用级权限做路由守卫）
    * - menus：role_menus 关联且可见的菜单，按 parent_id 组装为树
    * - buttons：role_menus.permissions 聚合出的按钮级权限点（去重、去空）
    */
   private async buildRoleData(roleId: number): Promise<RoleData> {
-    const [appRows] = await this.pool.query<RowDataPacket[]>(
-      'SELECT `app_key` FROM `role_apps` WHERE `role_id` = ? ORDER BY `app_key`',
-      [roleId],
-    )
-    const permissions = appRows.map((r) => r.app_key as string)
-
-    const [menuRows] = await this.pool.query<RowDataPacket[]>(
+    const [rows] = await this.pool.query<RowDataPacket[]>(
       'SELECT m.`id`, m.`app_key`, m.`parent_id`, m.`title`, m.`icon`, m.`path`, ' +
-        'rm.`permissions` AS `role_permissions` ' +
-        'FROM `menus` m JOIN `role_menus` rm ON rm.`menu_id` = m.`id` ' +
-        'WHERE rm.`role_id` = ? AND m.`visible` = 1 ORDER BY m.`id`',
+        'rm.`permissions` AS `role_permissions`, ' +
+        'ra.`app_key` AS `role_app_key` ' +
+        'FROM `role_menus` rm ' +
+        'JOIN `menus` m ON m.`id` = rm.`menu_id` ' +
+        'LEFT JOIN `role_apps` ra ON ra.`role_id` = rm.`role_id` ' +
+        'WHERE rm.`role_id` = ? AND m.`visible` = 1 ' +
+        'ORDER BY m.`id`, ra.`app_key`',
       [roleId],
     )
+    const permissions = [...new Set(rows.map((r) => r.role_app_key as string).filter(Boolean))]
+
+    const menuRows = rows.map((r) => ({
+      id: r.id,
+      app_key: r.app_key as AppKey | null,
+      parent_id: r.parent_id,
+      title: r.title,
+      icon: r.icon,
+      path: r.path,
+      permissions: r.role_permissions,
+    })) as RowDataPacket[]
     const menus = this.buildMenuTree(menuRows)
 
     const buttons = new Set<string>()
@@ -245,8 +246,8 @@ export class UserService {
   }
 
   /** 扁平菜单行 → 树：顶级项 key 取 appKey（与前端路由/高亮逻辑对齐），子项 key 用 menu-{id} */
-  private buildMenuTree(rows: RowDataPacket[]): AuthMenuItem[] {
-    const nodes = new Map<number, { parentId: number | null; node: AuthMenuItem }>()
+  private buildMenuTree(rows: RowDataPacket[]): MenuItem[] {
+    const nodes = new Map<number, { parentId: number | null; node: MenuItem }>()
     rows.forEach((r) => {
       nodes.set(r.id as number, {
         parentId: (r.parent_id as number | null) ?? null,
@@ -255,19 +256,19 @@ export class UserService {
           title: r.title as string,
           icon: (r.icon as string) || undefined,
           path: (r.path as string) || undefined,
-          appKey: r.app_key as string,
+          appKey: r.app_key as AppKey,
           children: [],
         },
       })
     })
-    const roots: AuthMenuItem[] = []
+    const roots: MenuItem[] = []
     nodes.forEach(({ parentId, node }) => {
       const parent = parentId != null ? nodes.get(parentId)?.node : undefined
       if (parent) parent.children!.push(node)
       else roots.push(node)
     })
     // 叶子节点去掉空 children 数组
-    const cleanup = (list: AuthMenuItem[]) => {
+    const cleanup = (list: MenuItem[]) => {
       list.forEach((n) => {
         if (n.children?.length) cleanup(n.children)
         else delete n.children
@@ -302,10 +303,10 @@ export class UserService {
 
   private async assertRolesExist(roleIds: number[]) {
     if (!roleIds.length) return
-    const placeholders = roleIds.map(() => '?').join(',')
+    const { clause, params } = buildInClause(roleIds)
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      'SELECT COUNT(*) AS cnt FROM `roles` WHERE `id` IN (' + placeholders + ')',
-      roleIds,
+      `SELECT COUNT(*) AS cnt FROM \`roles\` WHERE \`id\` IN (${clause})`,
+      params,
     )
     if (Number(rows[0].cnt) !== roleIds.length) {
       throw new ApiError('存在不存在的角色 id', 40400)

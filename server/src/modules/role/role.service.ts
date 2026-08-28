@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import type { Pool } from 'mysql2/promise'
 import type { RowDataPacket, ResultSetHeader } from 'mysql2'
 import { ApiError } from '../../common/errors'
+import { buildInClause } from '../../common/db.util'
 import type { AppKey, Role, MenuPermissionMap } from '../../common/types'
 import type { RoleCreateInput, RoleUpdateInput } from '../../common/schemas'
 import { PermissionService } from '../../common/permission.service'
@@ -71,10 +72,10 @@ export class RoleService {
 
   private async loadMenuTitles(menuIds: number[]): Promise<string[]> {
     if (!menuIds.length) return []
-    const placeholders = menuIds.map(() => '?').join(',')
+    const { clause, params } = buildInClause(menuIds)
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      'SELECT `title` FROM `menus` WHERE `id` IN (' + placeholders + ')',
-      menuIds,
+      `SELECT \`title\` FROM \`menus\` WHERE \`id\` IN (${clause})`,
+      params,
     )
     return rows.map((r) => r.title as string)
   }
@@ -173,10 +174,10 @@ export class RoleService {
 
   private async assertMenusExist(menuIds: number[]) {
     if (!menuIds.length) return
-    const placeholders = menuIds.map(() => '?').join(',')
+    const { clause, params } = buildInClause(menuIds)
     const [rows] = await this.pool.query<RowDataPacket[]>(
-      'SELECT COUNT(*) AS cnt FROM `menus` WHERE `id` IN (' + placeholders + ')',
-      menuIds,
+      `SELECT COUNT(*) AS cnt FROM \`menus\` WHERE \`id\` IN (${clause})`,
+      params,
     )
     if (Number(rows[0].cnt) !== menuIds.length) {
       throw new ApiError('存在不存在的菜单 id', 40400)

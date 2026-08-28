@@ -13,16 +13,9 @@ export interface RoleBrief {
   code?: string
 }
 
-/** 登录态菜单节点（与 @mic/components 的 MenuItem 结构对齐，避免循环依赖单独定义） */
-export interface AuthMenuItem {
-  key: string
-  title: string
-  icon?: string
-  /** 完整路径（含子应用前缀）；分组型菜单无 path */
-  path?: string
-  appKey?: string
-  children?: AuthMenuItem[]
-}
+/** 登录态菜单节点：直接复用 @mic/types 的 MenuItem（消除 AuthMenuItem 重复定义） */
+import type { MenuItem } from '@mic/types'
+export type { MenuItem }
 
 export interface UserInfo {
   id: string | number
@@ -39,7 +32,7 @@ export interface UserInfo {
   /** 应用级权限列表（如 doc / sys） */
   permissions?: string[]
   /** 当前角色的菜单树（后端登录/切换角色返回） */
-  menus?: AuthMenuItem[]
+  menus?: MenuItem[]
   /** 按钮级权限点集合（后端登录/切换角色返回，供 v-permission 消费） */
   buttons?: string[]
 }

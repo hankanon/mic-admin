@@ -19,6 +19,7 @@
     "baseUrl": ".",
     "paths": {
       "@mic/components": ["packages/components/src/index.ts"],
+      "@mic/types": ["packages/types/src/index.ts"],
       "@mic/utils": ["packages/utils/src/index.ts"]
     }
   },

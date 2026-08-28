@@ -133,6 +133,9 @@ importers:
       '@mic/components':
         specifier: workspace:*
         version: link:../../packages/components
+      '@mic/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@mic/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -284,6 +287,9 @@ importers:
       '@element-plus/icons-vue':
         specifier: ^2.3.0
         version: 2.3.2(vue@3.5.40(typescript@7.0.2))
+      '@mic/types':
+        specifier: workspace:*
+        version: link:../types
       '@mic/utils':
         specifier: workspace:*
         version: link:../utils
@@ -300,8 +306,13 @@ importers:
         specifier: 5.2.0
         version: 5.2.0(@vue/compiler-sfc@3.5.40)(esbuild@0.28.1)(pinia@4.0.2(@vue/devtools-api@8.2.1)(typescript@7.0.2)(vue@3.5.40(typescript@7.0.2)))(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.5(@types/node@22.20.1)(esbuild@0.28.1)(terser@5.50.0)(tsx@4.23.1)(yaml@2.9.0))(vue@3.5.40(typescript@7.0.2))(webpack@5.97.1(esbuild@0.28.1))
 
+  packages/types: {}
+
   packages/utils:
     dependencies:
+      '@mic/types':
+        specifier: workspace:*
+        version: link:../types
       axios:
         specifier: 1.18.1
         version: 1.18.1
@@ -314,6 +325,9 @@ importers:
 
   server:
     dependencies:
+      '@mic/types':
+        specifier: workspace:*
+        version: link:../packages/types
       '@nestjs/common':
         specifier: ^10.4.0
         version: 10.4.22(reflect-metadata@0.2.2)(rxjs@7.8.2)

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import type { Pool } from 'mysql2/promise'
 import type { RowDataPacket } from 'mysql2'
+import { buildInClause } from './db.util'
 
 interface CacheEntry {
   buttons: string[]
@@ -52,19 +53,19 @@ export class PermissionService {
       return empty
     }
 
-    const placeholders = roleIds.map(() => '?').join(',')
+    const { clause, params } = buildInClause(roleIds)
 
     const [appRows] = await this.pool.query<RowDataPacket[]>(
-      `SELECT DISTINCT \`app_key\` FROM \`role_apps\` WHERE \`role_id\` IN (${placeholders})`,
-      roleIds,
+      `SELECT DISTINCT \`app_key\` FROM \`role_apps\` WHERE \`role_id\` IN (${clause})`,
+      params,
     )
     const permissions = appRows.map((r) => r.app_key as string)
 
     const [menuRows] = await this.pool.query<RowDataPacket[]>(
       `SELECT rm.\`permissions\` FROM \`role_menus\` rm
          JOIN \`menus\` m ON m.\`id\` = rm.\`menu_id\`
-        WHERE rm.\`role_id\` IN (${placeholders}) AND m.\`visible\` = 1`,
-      roleIds,
+        WHERE rm.\`role_id\` IN (${clause}) AND m.\`visible\` = 1`,
+      params,
     )
     const buttons = new Set<string>()
     menuRows.forEach((r) => {

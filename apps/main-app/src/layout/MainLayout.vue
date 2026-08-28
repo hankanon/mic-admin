@@ -29,7 +29,7 @@ const notificationStore = useNotificationStore()
 
 const permissions = computed(() => userStore.userInfo?.permissions ?? [])
 // 菜单树来自后端（登录/切换角色时下发），按角色权限动态生成
-const menus = computed<MenuItem[]>(() => (userStore.userInfo?.menus ?? []) as unknown as MenuItem[])
+const menus = computed<MenuItem[]>(() => userStore.userInfo?.menus ?? [])
 
 // 通知中心：基座登录后建立到 sys-server 的 WebSocket 连接（身份取登录账号名）
 const notificationModules = [

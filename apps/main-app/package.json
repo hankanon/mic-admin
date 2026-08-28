@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@mic/components": "workspace:*",
+    "@mic/types": "workspace:*",
     "@mic/utils": "workspace:*",
     "@micro-zoe/micro-app": "1.0.0-rc.32",
     "@element-plus/icons-vue": "^2.3.0",

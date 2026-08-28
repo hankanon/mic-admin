@@ -11,6 +11,9 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "@mic/types": ["../packages/types/src/index.ts"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strict": true,
