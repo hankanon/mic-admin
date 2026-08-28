@@ -21,6 +21,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    // 后端接口代理：登录/角色数据/通知等 REST 请求转发到 Nest 服务
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
   },
   // 公共包以源码形式消费，排除预构建以避免 ESM 解析问题
   optimizeDeps: {

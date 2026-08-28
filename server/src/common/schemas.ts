@@ -68,9 +68,16 @@ export const userCreateSchema = z.object({
 
 export const userUpdateSchema = userCreateSchema.partial()
 
+/** 登录校验 */
+export const loginSchema = z.object({
+  username: z.string().min(1, '用户名必填').max(50),
+  password: z.string().min(1, '密码必填').max(100),
+})
+
 export type MenuCreateInput = z.infer<typeof menuCreateSchema>
 export type MenuUpdateInput = z.infer<typeof menuUpdateSchema>
 export type RoleCreateInput = z.infer<typeof roleCreateSchema>
 export type RoleUpdateInput = z.infer<typeof roleUpdateSchema>
 export type UserCreateInput = z.infer<typeof userCreateSchema>
 export type UserUpdateInput = z.infer<typeof userUpdateSchema>
+export type LoginInput = z.infer<typeof loginSchema>

@@ -27,7 +27,7 @@ pnpm typecheck              # 全 workspace 递归 vue-tsc --noEmit
 pnpm --filter @mic/doc-app typecheck   # 单个应用
 ```
 
-登录为演示 mock：仅预设账号 `admin` / `user1` / `user2`，统一密码 `12345`（定义在 `packages/utils/src/permission.ts` 的 `ACCOUNT_PRESETS`）；`userStore.login` 用 `findAccount` 校验，失败抛「账号或密码错误」。token 为 `mock-token-<用户名>`。右上角下拉可免密「切换角色」。
+登录走后端真实接口：`POST /api/users/login`（用户名 + 密码比对 `users` 表，明文存储），初始账号 `admin` / `editor` / `sysop` / `guest`，统一密码 `123456`；登录成功返回 token（`mock-token-{userId}-{ts}`）与用户信息（角色列表、当前角色、应用权限、菜单树）。右上角下拉「切换角色」调 `GET /api/users/role-data?roleId=` 拉取新角色的权限与菜单。演示账号标签定义在 `packages/utils/src/permission.ts` 的 `ACCOUNT_PRESETS`（仅用于登录页快捷展示）。
 
 ## 大局架构
 
@@ -84,15 +84,16 @@ packages/
   两套形态（micro 直接渲染 / BasicLayout 内）均已加 keep-alive。
 - **应用级（v-show）**：基座 `MicroContainer` 同时挂载全部 `<micro-app>`，靠 `v-show` 控制 `activeAppName` 显隐，子应用切走不卸载，返回时状态与查询条件保留。
 
-### 5. 账号与权限体系（应用级权限）
+### 5. 账号与权限体系（后端数据驱动）
 
-权限采用「应用级」划分：每个账号拥有一组应用权限标识（`doc` / `sys`），`'*'` 表示全部。核心文件与分工：
+权限采用「应用级」划分：角色关联一组应用 key（`role_apps`），登录后按当前角色下发。核心文件与分工：
 
-- **预设账号** `packages/utils/src/permission.ts`：`ACCOUNT_PRESETS`（`admin`→`['*']`、`user1`→`['doc']`、`user2`→`['sys']`，密码统一 `DEMO_PASSWORD='12345'`）；工具 `hasAppPermission` / `findAccount` / `SWITCHABLE_ACCOUNTS`。
-- **登录校验**：`main-app/src/store/user.ts` 的 `login` 用 `findAccount` 校验；新增 `switchAccount(username)` 免密切换（仅限预设账号）。
-- **菜单过滤**：`packages/components/src/menu/config.ts` 的 `filterMenusByPermissions(menus, permissions)` 移除无应用访问权限的顶级分组；**首页大盘(dashboard)、个人中心(profile)、智能问答(qa) 作为公共入口始终保留**（`publicApps`），无 `appKey` 的项（如「首页」）始终保留。基座 `MainLayout.vue` 与子应用 `App.vue` 均按 `userStore.userInfo.permissions` 过滤菜单。
+- **后端接口** `server/src/modules/user/`：`POST /api/users/login` 校验账号密码（`users.password` 明文比对）返回 token（`mock-token-{userId}-{ts}`）+ 用户信息（`roles` 角色列表、`currentRoleId` 当前角色、`permissions` 应用权限、`menus` 菜单树）；`GET /api/users/role-data?roleId=`（从 Authorization token 解析 userId）返回目标角色的权限与菜单（校验角色归属）。
+- **演示账号标签** `packages/utils/src/permission.ts`：`ACCOUNT_PRESETS`（admin/editor/sysop/guest，密码统一 `DEMO_PASSWORD='123456'`）仅供登录页快捷标签展示；工具 `hasAppPermission` / `findAccount` / `SWITCHABLE_ACCOUNTS`。
+- **登录态**：`main-app/src/store/user.ts` 的 `login` 调后端接口（失败抛后端错误消息）；`switchRole(roleId)` 调 role-data 接口更新 `currentRoleId`/`permissions`/`menus` 并持久化。
+- **菜单来源**：基座 `MainLayout.vue` 的菜单树直接取 `userStore.userInfo.menus`（后端按角色 `role_menus` 组装，顶级 key=appKey、叶子 key=`menu-{id}`）；本地 `menuConfig` 仅用于子应用独立运行。
 - **路由守卫**：`main-app/src/router/index.ts` 的 `beforeEach` 中，已登录用户访问越权应用（`/doc`、`/sys`）时重定向到 `firstAccessiblePath(permissions)`（dashboard 始终可访问）。
-- **切换角色**：`LayoutActions` 右上角 `el-dropdown`（由 `accounts` prop 驱动，当前账号项禁用）+「切换角色」标题；基座 `MainLayout` 监听 `@switch-account` → `userStore.switchAccount` → `microApp.setGlobalData` 重新下发 → 若当前路由越权则 `router.push` 校正；子应用通过 `onGlobalData` 同步 `userInfo`，菜单与权限实时更新。独立运行（无 `accounts`）默认只显示「退出登录」按钮。
+- **切换角色**：`LayoutActions` 右上角下拉（由 `accounts` prop 驱动，来自 `userInfo.roleList`，当前角色项标注「（当前）」）；基座 `MainLayout` 监听 `@switch-account` → `userStore.switchRole` → `tabsStore.reset()` 清页签 → `microApp.setGlobalData` 重新下发 → 若当前路由越权则 `router.push` 校正；子应用通过 `onGlobalData` 同步 `userInfo`，菜单与权限实时更新。
 
 ### 6. 菜单与登出的集中约定
 

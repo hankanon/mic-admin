@@ -67,7 +67,7 @@ pnpm typecheck              # 全 workspace 递归 vue-tsc --noEmit
 pnpm --filter @mic/doc-app typecheck   # 单个应用
 ```
 
-> 登录为演示 mock：仅预设账号 `admin` / `user1` / `user2`，统一密码 `12345`；右上角下拉可免密「切换角色」。
+> 登录走后端真实接口（`POST /api/users/login`）：初始账号 `admin` / `editor` / `sysop` / `guest`，统一密码 `123456`；右上角下拉可「切换角色」（多角色账号如 admin 绑定超管/文档编辑/系统管理员三个角色）。
 
 ## 本地访问地址
 

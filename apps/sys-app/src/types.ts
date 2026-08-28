@@ -36,7 +36,7 @@ export interface RoleView {
   updatedAt?: string
 }
 
-export type RolePayload = Omit<RoleView, 'id' | 'menuTitles' | 'createdAt' | 'updatedAt'>
+export type RolePayload = Omit<RoleView, 'id' | 'menuTitles' | 'menus' | 'createdAt' | 'updatedAt'>
 
 export interface UserView {
   id: number

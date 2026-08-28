@@ -90,7 +90,7 @@ function quickLogin(username: string) {
         >
           {{ acc.name }}
         </el-tag>
-        <div class="login-page__demo-hint">密码均为 12345，点击标签直接登录</div>
+        <div class="login-page__demo-hint">密码均为 123456，点击标签直接登录</div>
       </div>
     </el-card>
   </div>

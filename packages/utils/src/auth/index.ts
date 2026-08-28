@@ -3,12 +3,40 @@ import { getStorage, setStorage, removeStorage, clearStorage } from '../storage'
 const TOKEN_KEY = 'token'
 const USER_KEY = 'user_info'
 
+/** 角色摘要（后端登录返回） */
+export interface RoleBrief {
+  id: number
+  name: string
+  code?: string
+}
+
+/** 登录态菜单节点（与 @mic/components 的 MenuItem 结构对齐，避免循环依赖单独定义） */
+export interface AuthMenuItem {
+  key: string
+  title: string
+  icon?: string
+  /** 完整路径（含子应用前缀）；分组型菜单无 path */
+  path?: string
+  appKey?: string
+  children?: AuthMenuItem[]
+}
+
 export interface UserInfo {
   id: string | number
+  /** 登录账号名（后端登录返回；独立运行 mock 场景可能没有） */
+  username?: string
   name: string
   avatar?: string
+  /** 角色标识列表（兼容子应用独立运行的 mock 登录） */
   roles?: string[]
+  /** 角色对象列表（后端登录返回，用于切换角色） */
+  roleList?: RoleBrief[]
+  /** 当前生效角色 id（后端登录返回） */
+  currentRoleId?: number | null
+  /** 应用级权限列表（如 doc / sys） */
   permissions?: string[]
+  /** 当前角色的菜单树（后端登录/切换角色返回） */
+  menus?: AuthMenuItem[]
 }
 
 /** 写入 token（默认 7 天过期） */

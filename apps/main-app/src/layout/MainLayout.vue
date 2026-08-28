@@ -7,13 +7,11 @@ import {
   TopNavMenu,
   LayoutActions,
   AppMenu,
-  menuConfig,
-  filterMenusByPermissions,
   matchMenuKey,
   stripAppPrefix,
   type MenuItem,
 } from '@mic/components'
-import { SWITCHABLE_ACCOUNTS, hasAppPermission } from '@mic/utils'
+import { hasAppPermission } from '@mic/utils'
 import { useUserStore } from '../store/user'
 import { useTabsStore } from '../store/tabs'
 import { useNotificationStore } from '../store/notification'
@@ -26,9 +24,10 @@ const tabsStore = useTabsStore()
 const notificationStore = useNotificationStore()
 
 const permissions = computed(() => userStore.userInfo?.permissions ?? [])
-const menus = computed(() => filterMenusByPermissions(menuConfig, permissions.value))
+// 菜单树来自后端（登录/切换角色时下发），按角色权限动态生成
+const menus = computed<MenuItem[]>(() => (userStore.userInfo?.menus ?? []) as unknown as MenuItem[])
 
-// 通知中心：基座登录后建立到 sys-server 的 WebSocket 连接
+// 通知中心：基座登录后建立到 sys-server 的 WebSocket 连接（身份取登录账号名）
 const notificationModules = [
   { key: 'dashboard', label: '首页大盘' },
   { key: 'doc', label: '文档管理' },
@@ -36,7 +35,9 @@ const notificationModules = [
   { key: 'profile', label: '个人中心' },
   { key: 'qa', label: '智能问答' },
 ]
-const currentUserId = computed(() => userStore.userInfo?.id as string | undefined)
+const currentUserId = computed(
+  () => userStore.userInfo?.username || (userStore.userInfo?.id != null ? String(userStore.userInfo.id) : undefined),
+)
 notificationStore.init(currentUserId.value)
 
 const iconComponents = ElementPlusIconsVue as Record<string, any>
@@ -83,14 +84,23 @@ function goTop(item: MenuItem) {
   if (to !== route.fullPath.replace(/^#/, '')) router.push(to)
 }
 
-const userInfo = computed(() => ({
-  id: userStore.userInfo?.id != null ? String(userStore.userInfo.id) : undefined,
-  name: userStore.userInfo?.name || '未登录',
-  avatar: userStore.userInfo?.avatar,
-}))
+const userInfo = computed(() => {
+  const info = userStore.userInfo
+  // 右上角标签显示当前生效角色名（切换角色后实时反映），未命中时回退姓名
+  const currentRoleName = info?.roleList?.find((r) => r.id === info.currentRoleId)?.name
+  return {
+    id: info?.username || (info?.id != null ? String(info.id) : undefined),
+    name: currentRoleName || info?.name || '未登录',
+    avatar: info?.avatar,
+  }
+})
 
 const accounts = computed(() =>
-  SWITCHABLE_ACCOUNTS.map((a) => ({ ...a, current: a.username === userStore.userInfo?.id })),
+  (userStore.userInfo?.roleList ?? []).map((r) => ({
+    username: String(r.id),
+    name: r.name,
+    current: r.id === userStore.userInfo?.currentRoleId,
+  })),
 )
 
 /** 在（已按权限过滤的）菜单树中按 key 查找菜单项 */
@@ -130,24 +140,31 @@ function handleLogout() {
   router.push('/login')
 }
 
-/** 切换角色：更新用户态、重新下发全局数据，并校正当前路由到权限范围内 */
-function handleSwitchAccount(username: string) {
-  userStore.switchAccount(username)
-  // 通知中心：以新账号重连 WebSocket（定向接收该用户的提醒/告警）
-  notificationStore.reconnect(userStore.userInfo?.id as string | undefined)
-  const perms = userStore.userInfo?.permissions ?? []
+/** 切换角色：拉取新角色的权限与菜单，重新下发全局数据，并校正路由与页签到新权限范围内 */
+async function handleSwitchAccount(roleIdStr: string) {
+  const roleId = Number(roleIdStr)
+  if (!Number.isInteger(roleId) || roleId === userStore.userInfo?.currentRoleId) return
+  try {
+    await userStore.switchRole(roleId)
+  } catch {
+    // 失败时保持原角色（错误提示由请求拦截器统一弹出）
+    return
+  }
   microApp.setGlobalData({
     token: userStore.token,
     userInfo: userStore.userInfo,
   })
+  // 菜单集合已变化：重置页签，避免残留失效路径
+  tabsStore.reset()
+  // 当前路由越权（doc/sys）时校正到新权限范围内
+  const perms = userStore.userInfo?.permissions ?? []
   const path = route.fullPath.replace(/^#/, '')
   const appKey = path.startsWith('/doc') ? 'doc' : path.startsWith('/sys') ? 'sys' : null
   if (appKey && !hasAppPermission(perms, appKey)) {
     const first = (['doc', 'sys'] as const).find((k) => hasAppPermission(perms, k))
     router.push(first ? `/${first}` : '/')
-    tabsStore.reset()
-    syncTabs()
   }
+  syncTabs()
 }
 
 /** 点击通知项：若携带业务链接则跳转（基座直接 router.push，子应用通过 MicroMsgType 转发） */
